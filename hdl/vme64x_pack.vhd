@@ -206,10 +206,6 @@ package vme64x_pack is
    constant BYTES1              : integer := FUNC0_ADER_3 -11;
 	constant WB32bits            : integer := FUNC0_ADER_3 -12;
    constant Endian              : integer := FUNC0_ADER_3 -4;
-   constant SDB_ADDR_0           : integer := 200;
-   constant SDB_ADDR_1           : integer := SDB_ADDR_1 -1;
-   constant SDB_ADDR_2           : integer := SDB_ADDR_1 -2;
-   constant SDB_ADDR_3           : integer := SDB_ADDR_1 -3;
 
    -- Initialization CR:
    constant BEG_USER_CR  : integer := 1;  
@@ -332,8 +328,6 @@ package vme64x_pack is
   constant c_BYTES1_addr          : unsigned(19 downto 0) := x"7FF37";
   constant c_WB32bits_addr        : unsigned(19 downto 0) := x"7FF33";
   constant c_Endian_addr          : unsigned(19 downto 0) := x"7FF53";  -- VME64x reserved CSR  
-  -- USER CSR address:
-  constant c_SDB_ADDR             : unsigned(19 downto 0) := x"7A00B";
 --___________________________________________________________________________________________
 -- TYPE:
   type t_typeOfDataTransfer is (  D08_0,   
@@ -463,7 +457,9 @@ function f_latchDS (clk_period : integer) return integer;
                         g_ManufacturerID : integer := c_CERN_ID;       -- 0x00080030
                         g_RevisionID     : integer := c_RevisionID;    -- 0x00000001
                         g_ProgramID      : integer := 96;              -- 0x00000060 
-                        g_base_addr      : base_addr  := MECHANICALLY
+                        g_base_addr      : base_addr  := MECHANICALLY;
+                        g_sdb_addr       : t_wishbone_address := c_sdb_address
+
                         );
                         port(
                               -- VME signals:
@@ -753,7 +749,8 @@ function f_latchDS (clk_period : integer) return integer;
               component VME_Wb_master is
 				  generic(
                         g_wb_data_width : integer := c_width;
-	                     g_wb_addr_width : integer := c_addr_width
+	                     g_wb_addr_width : integer := c_addr_width;
+                        g_sdb_addr      : t_wishbone_address := c_sdb_address
                         );
                  port(
                         memReq_i        : in  std_logic;

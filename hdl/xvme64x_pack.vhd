@@ -89,8 +89,10 @@ package xvme64x_pack is
 	end record;   
    
   --_______________________________________________________________________________
-  -- Constants:
-  --WB data width:
+  -- Constants:  
+   --SDB address
+   constant c_sdb_address    : t_wishbone_address := x"00300000";
+   --WB data width:
    constant c_width          : integer := 32; --must be 32 or 64!
 	--CRAM size in the CR/CSR space (bytes):
 	constant c_CRAM_SIZE      : integer := 1024; 
@@ -455,7 +457,8 @@ function f_latchDS (clk_period : integer) return integer;
                         g_ManufacturerID : integer := c_CERN_ID;       -- 0x00080030
                         g_RevisionID     : integer := c_RevisionID;    -- 0x00000001
                         g_ProgramID      : integer := 96;              -- 0x00000060 
-                        g_base_addr      : base_addr  := MECHANICALLY
+                        g_base_addr      : base_addr  := MECHANICALLY;
+                        g_sdb_addr       : t_wishbone_address := c_sdb_address
                         );
                         port(
                               -- VME signals:
@@ -502,7 +505,8 @@ function f_latchDS (clk_period : integer) return integer;
 				  generic(  g_clock         : integer := c_clk_period;
                         g_wb_data_width : integer := c_width;
 	                     g_wb_addr_width : integer := c_addr_width;
-								g_cram_size     : integer := c_CRAM_SIZE
+								g_cram_size     : integer := c_CRAM_SIZE;
+                        g_sdb_addr      : t_wishbone_address := c_sdb_address
                         );
                  port(
                         clk_i                : in std_logic;
@@ -737,8 +741,9 @@ function f_latchDS (clk_period : integer) return integer;
               component VME_Wb_master is
 				  generic(
                         g_wb_data_width : integer := c_width;
-	                     g_wb_addr_width : integer := c_addr_width
-                        );
+	                     g_wb_addr_width : integer := c_addr_width;
+                        g_family : string := "Arria II VME-WB";
+                        g_sdb_addr      : t_wishbone_address := c_sdb_address);
                  port(
                         memReq_i        : in  std_logic;
                         clk_i           : in  std_logic;

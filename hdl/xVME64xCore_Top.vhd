@@ -60,7 +60,9 @@
       -- loc: 0x7f    CR space
       g_ProgramID      : integer := 90;                  -- 1 byte : 0x5a 
       -- VME base address setting 
-      g_base_addr      : base_addr  := GEOGRAPHICAL_ADDR     -- MECHANICALLY or , legacy
+      g_base_addr      : base_addr  := GEOGRAPHICAL_ADDR;      -- MECHANICALLY or , legacy
+      -- SDB address 
+      g_sdb_addr       : t_wishbone_address := c_sdb_address   -- 0x00300000
 	 );
    port(
      clk_i            : in std_logic;              
@@ -266,7 +268,8 @@ begin
               g_clock          => g_clock,
               g_wb_data_width  => g_wb_data_width,
 				  g_wb_addr_width  => g_wb_addr_width, 
-				  g_cram_size      => g_cram_size
+				  g_cram_size      => g_cram_size,
+              g_sdb_addr       => c_sdb_address
            )
   port map(
        clk_i                => clk_i,

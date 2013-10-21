@@ -74,6 +74,7 @@ use IEEE.STD_LOGIC_1164.all;
 use IEEE.numeric_std.all;
 use work.VME_Buffer_pack.all;
 use work.xvme64x_pack.all;
+use work.wishbone_pkg.all;
 --===========================================================================
 -- Entity declaration
 --===========================================================================
@@ -81,7 +82,8 @@ entity VME_bus is
    generic(g_clock         : integer    := c_clk_period;
 	        g_wb_data_width : integer    := c_width;
 	        g_wb_addr_width : integer    := c_addr_width;
-			  g_cram_size     : integer    := c_CRAM_SIZE
+			  g_cram_size     : integer    := c_CRAM_SIZE;
+           g_sdb_addr      : t_wishbone_address := c_sdb_address
 	);
    port(
           clk_i                : in  std_logic;	  -- 125 Mhz 
@@ -1185,7 +1187,8 @@ with s_addressingType select
   Inst_Wb_master: VME_Wb_master 
                                generic map(
                                          g_wb_data_width    => g_wb_data_width,
-				                             g_wb_addr_width    => g_wb_addr_width 
+				                             g_wb_addr_width    => g_wb_addr_width,
+													  g_sdb_addr			=> g_sdb_addr
                                          )
                                 port map(
                                          memReq_i        => s_memReq,

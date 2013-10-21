@@ -59,14 +59,17 @@ library IEEE;
 use IEEE.STD_LOGIC_1164.ALL;
 use IEEE.numeric_std.all;
 use work.xvme64x_pack.all;
+use work.wishbone_pkg.all;
 
 --===========================================================================
 -- Entity declaration
 --===========================================================================
 entity VME_Wb_master is
    generic(g_wb_data_width : integer := c_width;
-	        g_wb_addr_width : integer := c_addr_width
-	);
+	        g_wb_addr_width : integer := c_addr_width;
+           g_family        : string  := "Arria II VME-WB";
+           g_sdb_addr : t_wishbone_address := c_sdb_address);
+
    Port ( memReq_i        : in   std_logic;
           clk_i           : in   std_logic;
           cardSel_i       : in   std_logic;
