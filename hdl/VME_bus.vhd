@@ -1208,12 +1208,13 @@ with s_addressingType select
                                          rty_i           => rty_i,
                                          err_i           => err_i,
                                          cyc_o           => cyc_o,
-                                         memReq_o        => memReq_o,
+                                         stb_o           => memReq_o,
                                          WBdata_o        => wbData_o,
                                          wbData_i        => wbData_i,
                                          locAddr_o       => locAddr_o,
                                          memAckWB_i      => memAckWB_i,
                                          WbSel_o         => wbSel_o,
+                                         funct_sel       => s_func_sel,
                                          RW_o            => RW_o
                                         );
 													 
