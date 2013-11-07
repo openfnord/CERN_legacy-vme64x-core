@@ -1,5 +1,6 @@
 files = [ "xVME64xCore_Top.vhd",
           "xvme64x_pack.vhd",
+          "VME_Buffer_pack.vhd",
           "VME_Access_Decode.vhd",
           "VME_Am_Match.vhd",
           "VME_bus.vhd",
@@ -13,3 +14,4 @@ files = [ "xVME64xCore_Top.vhd",
           "VME_SharedComps.vhd",
           "VME_swapper.vhd",
           "VME_Wb_master.vhd"]
+
