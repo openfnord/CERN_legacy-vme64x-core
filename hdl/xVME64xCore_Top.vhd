@@ -92,7 +92,7 @@
      VME_IACKOUT_n_o  : out   std_logic;
 
      -- VME buffers
-     VME_DTACK_OE_o   : out   std_logic;
+     --VME_DTACK_OE_o   : out   std_logic;
      
      --VME_DATA_BUFF_o  : out   t_VME_BUFFER;                                          
      --VME_ADDR_BUFF_o  : out   t_VME_BUFFER;
@@ -143,8 +143,8 @@
   signal s_fifo                    : std_logic;
   signal s_VME_DTACK_VMEbus        : std_logic;
   signal s_VME_DTACK_IRQ           : std_logic;
-  signal s_VME_DTACK_OE_VMEbus     : std_logic;
-  signal s_VME_DTACK_OE_IRQ        : std_logic;
+  --signal s_VME_DTACK_OE_VMEbus     : std_logic;
+  --signal s_VME_DTACK_OE_IRQ        : std_logic;
   --signal s_VME_DATA_DIR_VMEbus     : std_logic;
   --signal s_VME_DATA_BUFF_VMEbus    : t_VME_BUFFER;
   --signal s_VME_DATA_DIR_IRQ        : std_logic;
@@ -285,7 +285,7 @@ begin
 		 VME_DS_n_i           => VME_DS_n_oversampled,
 		 VME_DS_ant_n_i       => VME_DS_n_oversampled_1,
 		 VME_DTACK_n_o        => s_VME_DTACK_VMEbus,
-		 VME_DTACK_OE_o       => s_VME_DTACK_OE_VMEbus,
+		 --VME_DTACK_OE_o       => s_VME_DTACK_OE_VMEbus,
 		 VME_BERR_o           => VME_BERR_o,
 		 VME_ADDR_i           => VME_ADDR_i,
 		 VME_ADDR_o           => VME_ADDR_o,
@@ -357,8 +357,8 @@ begin
                         s_VME_DATA_IRQ;
     VME_DTACK_n_o    <= s_VME_DTACK_VMEbus      when  VME_IACK_n_oversampled ='1' else 
                         s_VME_DTACK_IRQ;		
-    VME_DTACK_OE_o   <= s_VME_DTACK_OE_VMEbus   when  VME_IACK_n_oversampled ='1' else 
-                        s_VME_DTACK_OE_IRQ;					
+    --VME_DTACK_OE_o   <= s_VME_DTACK_OE_VMEbus   when  VME_IACK_n_oversampled ='1' else 
+    --                    s_VME_DTACK_OE_IRQ;					
     --VME_DATA_DIR_o   <= s_VME_DATA_DIR_VMEbus   when  VME_IACK_n_oversampled ='1' else 
     --                    s_VME_DATA_DIR_IRQ;					
     --VME_DATA_BUFF_o  <= s_VME_DATA_BUFF_VMEbus   when  VME_IACK_n_oversampled ='1' else 
@@ -382,10 +382,9 @@ begin
 		          VME_IRQ_n_o       => s_VME_IRQ_n_o,
          		 VME_IACKOUT_n_o   => VME_IACKOUT_n_o,
          		 VME_DTACK_n_o     => s_VME_DTACK_IRQ,
-         		 VME_DTACK_OE_o    => s_VME_DTACK_OE_IRQ,
          		 VME_DATA_o        => s_VME_DATA_IRQ,
+         		 --VME_DTACK_OE_o    => s_VME_DTACK_OE_IRQ,
          		 --VME_DATA_DIR_o    => s_VME_DATA_DIR_IRQ
-                --VME_DATA_BUFF_o   => s_VME_DATA_BUFF_IRQ
                 VME_BUFFER_o      => s_VME_BUFFER_IRQ
                   	);
     
