@@ -49,13 +49,14 @@ package xvme64x_pack is
 			s_clk          :  std_logic;
          s_buffer_eo    :  vme_buffer_eo;
          s_latch_oe     :  std_logic;
+         s_dtack_oe     :  std_logic;
 	end record;
 
    type t_FSM is
       record
          s_memReq         :  std_logic;
          s_decode         :  std_logic;
-         s_dtackOE        :  std_logic;
+         --s_dtackOE        :  std_logic;
          s_mainDTACK      :  std_logic;
          s_buffer         :  t_VME_BUFFER;
          --s_dataBuf        :  t_VME_BUFFER;
@@ -85,7 +86,7 @@ package xvme64x_pack is
 			s_enableIRQ :  std_logic;
 			s_resetIRQ  :  std_logic;
 			s_DSlatch   :  std_logic;
-			s_DTACK_OE  :  std_logic;
+			--s_DTACK_OE  :  std_logic;
 	end record;   
    
   --_______________________________________________________________________________
@@ -237,6 +238,7 @@ package xvme64x_pack is
 			s_dataDir      =>  '0',
 			s_clk          =>  '0',
          s_buffer_eo    => ADDR_BUFF,
+         s_dtack_oe     =>  '0',
          s_latch_oe     =>  '0'
 );
    -- Main Finite State machine signals default:
@@ -248,7 +250,7 @@ package xvme64x_pack is
    constant c_FSM_default : t_FSM :=(
    s_memReq         => '0',
    s_decode         => '0',
-   s_dtackOE        => '0',  
+   --s_dtackOE        => '0',  
    s_mainDTACK      => '1',
    s_buffer         => c_buffer_default,
    --s_dataDir        => '0',
@@ -270,12 +272,12 @@ package xvme64x_pack is
    constant c_FSM_IRQ : t_FSM_IRQ :=(
 		s_IACKOUT   => '1',
 		--s_DataDir   => '0', 
+		--s_DTACK_OE  => '0'
       s_buffer    => c_buffer_default,
 		s_DTACK     => '1',
 		s_enableIRQ => '0',
 		s_resetIRQ  => '1',
 		s_DSlatch   => '0',
-		s_DTACK_OE  => '0'
 );
 
   -- CSR address:
@@ -420,6 +422,9 @@ package xvme64x_pack is
 --                                  TWOe_END_2
                              );
 
+   type t_IRQMainFSM is (IDLE, IRQ, WAIT_AS, WAIT_DS, LATCH_DS, 
+                         CHECK, DATA_OUT, DTACK,IACKOUT1,IACKOUT2);
+
    type t_initState is (         IDLE,            
                                  SET_ADDR,
                                  GET_DATA,
@@ -488,7 +493,7 @@ function f_latchDS (clk_period : integer) return integer;
                         VME_IACKOUT_n_o : out   std_logic;
 
                         VME_DTACK_n_o   : out   std_logic;
-                        VME_DTACK_OE_o  : out   std_logic;
+                        --VME_DTACK_OE_o  : out   std_logic;
 
                         VME_Buffer_o    : out   t_VME_BUFFER;
 
@@ -556,7 +561,7 @@ function f_latchDS (clk_period : integer) return integer;
                         VME_RETRY_n_o        : out std_logic;
                         VME_RETRY_OE_o       : out std_logic;
                         VME_DTACK_n_o        : out std_logic;
-                        VME_DTACK_OE_o       : out std_logic;
+                        --VME_DTACK_OE_o       : out std_logic;
                         VME_BERR_o           : out std_logic;
                         VME_ADDR_o           : out std_logic_vector(31 downto 1);
 								VME_BUFFER_o         : out t_VME_BUFFER;
@@ -929,7 +934,7 @@ function f_latchDS (clk_period : integer) return integer;
                         VME_IRQ_n_o     : out std_logic_vector(6 downto 0);
                         VME_IACKOUT_n_o : out std_logic;
                         VME_DTACK_n_o   : out std_logic;
-                        VME_DTACK_OE_o  : out std_logic;
+                        --VME_DTACK_OE_o  : out std_logic;
                         VME_DATA_o      : out std_logic_vector(31 downto 0);
                         --VME_DATA_DIR_o  : out std_logic
 								VME_BUFFER_o         : out t_VME_BUFFER

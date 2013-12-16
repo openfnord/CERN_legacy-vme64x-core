@@ -102,6 +102,8 @@ library IEEE;
 use IEEE.STD_LOGIC_1164.ALL;
 use IEEE.numeric_std.all;
 use work.xvme64x_pack.all;
+use work.VME_Buffer_pack.all;
+
 --===========================================================================
 -- Entity declaration
 --===========================================================================
@@ -118,10 +120,11 @@ entity VME_IRQ_Controller is
           INT_Vector_i     : in   std_logic_vector (7 downto 0);
           INT_Req_i        : in   std_logic;
           VME_IRQ_n_o      : out  std_logic_vector (6 downto 0);
+          VME_DATA_o       : out  std_logic_vector (31 downto 0);
           VME_IACKOUT_n_o  : out  std_logic;
           VME_DTACK_n_o    : out  std_logic;
-          VME_DTACK_OE_o   : out  std_logic;
-          VME_DATA_o       : out  std_logic_vector (31 downto 0);
+------------------------------------------------------------------          
+--        VME_DTACK_OE_o   : out  std_logic;
 --        VME_DATA_DIR_o   : out  std_logic);
           VME_BUFFER_o     : out  t_VME_BUFFER);
 end VME_IRQ_Controller;
@@ -132,15 +135,16 @@ architecture Behavioral of VME_IRQ_Controller is
 --input signals
    signal s_INT_Req_sample          : std_logic;
 --output signals
-	signal s_DTACK_OE_o              : std_logic;
+	--signal s_DTACK_OE_o              : std_logic;
+   signal s_buffer                  : t_VME_BUFFER;
 	signal s_enable                  : std_logic;
    signal s_IRQ                     : std_logic_vector(6 downto 0);
    signal s_Data                    : std_logic_vector(31 downto 0);
 --
    signal s_AS_FallingEdge          : std_logic;
 	signal s_AS_RisingEdge           : std_logic;     
-   type t_MainFSM is (IDLE, IRQ, WAIT_AS, WAIT_DS, LATCH_DS, CHECK, DATA_OUT, DTACK,IACKOUT1,IACKOUT2);
-   signal s_currs, s_nexts          : t_MainFSM;
+   --type t_IRQMainFSM is (IDLE, IRQ, WAIT_AS, WAIT_DS, LATCH_DS, CHECK, DATA_OUT, DTACK,IACKOUT1,IACKOUT2);
+   signal s_currs, s_nexts          : t_IRQMainFSM;
    signal s_ack_int                 : std_logic;
    signal s_VME_ADDR_123_latched    : std_logic_vector(2 downto 0);
    signal s_VME_DS_latched          : std_logic_vector(1 downto 0);
@@ -193,7 +197,8 @@ begin
    DTACKOEOutputSample : process(clk_i)
 	begin
 		if rising_edge(clk_i) then	 
-			s_DTACK_OE_o <= s_FSM_IRQ.s_DTACK_OE;
+			--s_DTACK_OE_o <= s_FSM_IRQ.s_DTACK_OE;
+			s_buffer <= s_FSM_IRQ.s_buffer;
 		end if;	
 	end process;
 
@@ -348,14 +353,16 @@ begin
       when  DATA_OUT=>	  
 		    s_FSM_IRQ             <= c_FSM_IRQ;
 		    --s_FSM_IRQ.s_DataDir   <= '1';
+			 --s_FSM_IRQ.s_DTACK_OE  <= '1';
+          s_FSM_IRQ.s_buffer    <= buffer_irq_function(s_currs);
 			 s_FSM_IRQ.s_resetIRQ  <= '0';
-			 s_FSM_IRQ.s_DTACK_OE   <= '1';
 
       when  DTACK=>	
 	     	 s_FSM_IRQ             <= c_FSM_IRQ;
 			 --s_FSM_IRQ.s_DataDir   <= '1';
+			 --s_FSM_IRQ.s_DTACK_OE  <= '1';
+          s_FSM_IRQ.s_buffer    <= buffer_irq_function(s_currs);
 			 s_FSM_IRQ.s_DTACK     <= '0';
-			 s_FSM_IRQ.s_DTACK_OE   <= '1';
 			 		
       when others => null;
     end case;
@@ -420,7 +427,9 @@ begin
   s_Data <= x"000000" & INT_Vector_i;  
   s_enable <= (not s_INT_Req_sample) or ((not s_FSM_IRQ.s_DTACK) and (s_AS_RisingEdge)); 
   -- the INT_Vector is in the D0:D7 lines (byte3 in big endian order)  
-  VME_DTACK_OE_o  <= s_DTACK_OE_o;
+  --VME_DTACK_OE_o  <= s_DTACK_OE_o;
+
+  VME_BUFFER_o    <= s_buffer;
   VME_IACKOUT_n_o <= s_FSM_IRQ.s_IACKOUT;
 end Behavioral;
 --===========================================================================

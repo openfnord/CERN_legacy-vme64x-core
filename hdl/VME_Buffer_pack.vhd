@@ -38,6 +38,9 @@ package VME_Buffer_pack is
                               is_d64       : std_logic;
                               vme_write    : std_logic)
                             return t_VME_BUFFER;
+
+   function buffer_irq_function ( fsm      : t_IRQMainFSM)
+                            return t_VME_BUFFER; 
                             
    type bus_mode is (  LATCHED,
                        CLOCKED);
@@ -56,6 +59,8 @@ package VME_Buffer_pack is
 
          addr_buff_v2f_o  : out std_logic;
          addr_buff_f2v_o  : out std_logic;
+
+         dtack_oe_o       : out std_logic;
 
          latch_buff_o     : out std_logic
       );
@@ -91,13 +96,15 @@ package body VME_Buffer_pack is
 					vme_buff.s_dataDir 	:= VME2FPGA;
                vme_buff.s_buffer_eo := ADDR_BUFF;
                vme_buff.s_clk 		:= '1';
+               vme_buff.s_dtack_oe  := '0';
 
             when DECODE_ACCESS  =>
  
                vme_buff.s_addrDir	:= VME2FPGA;
 					vme_buff.s_dataDir 	:= VME2FPGA;
                vme_buff.s_buffer_eo := ADDR_BUFF;
-					vme_buff.s_clk       := '0';                   
+					vme_buff.s_clk       := '0';
+               vme_buff.s_dtack_oe  := '0';
 				
 				when	WAIT_FOR_DS | LATCH_DS1 | LATCH_DS2
 				     | LATCH_DS3 | LATCH_DS4 =>
@@ -117,7 +124,8 @@ package body VME_Buffer_pack is
 					end if;
 						
 					vme_buff.s_clk          := '0';
-					
+               vme_buff.s_dtack_oe     := '1';
+
 				when CHECK_TRANSFER_TYPE | MEMORY_REQ =>
 						
 					if('1' = is_d64) then
@@ -135,6 +143,7 @@ package body VME_Buffer_pack is
 					end if;
 						
 					vme_buff.s_clk          := '0';	
+               vme_buff.s_dtack_oe     := '1';
 
             when DATA_TO_BUS | DTACK_LOW | DECIDE_NEXT_CYCLE =>
 
@@ -153,6 +162,7 @@ package body VME_Buffer_pack is
 					end if;
 						
 					vme_buff.s_clk          := '1';
+               vme_buff.s_dtack_oe     := '1';
 
 				when INCREMENT_ADDR | SET_DATA_PHASE  =>
 				
@@ -171,18 +181,59 @@ package body VME_Buffer_pack is
 					end if;
 						
 					vme_buff.s_clk          := '0';
-					
+               vme_buff.s_dtack_oe     := '1';
+
 				when others =>		
 					vme_buff.s_addrDir 	:= VME2FPGA;
 					vme_buff.s_dataDir 	:= VME2FPGA;
                vme_buff.s_buffer_eo := ADDR_BUFF;
 					vme_buff.s_clk       := '0'; 
-					
+               vme_buff.s_dtack_oe  := '0';
 			end case;
 
       return vme_buff;
 
    end buffer_function;
 
-end VME_Buffer_pack;
 
+   function buffer_irq_function ( fsm  : t_IRQMainFSM )
+                            return t_VME_BUFFER is
+
+        variable vme_buff       : t_VME_BUFFER  := c_buffer_default;
+
+    begin
+
+        case fsm is         
+        
+           when DATA_OUT => 
+
+               vme_buff.s_addrDir	:= VME2FPGA;
+					vme_buff.s_dataDir 	:= FPGA2VME;
+               vme_buff.s_buffer_eo := DATA_BUFF;
+               vme_buff.s_clk 		:= '0';
+               vme_buff.s_dtack_oe  := '1';
+
+            when DTACK => 
+
+               vme_buff.s_addrDir	:= VME2FPGA;
+					vme_buff.s_dataDir 	:= FPGA2VME;
+               vme_buff.s_buffer_eo := DATA_BUFF;
+               vme_buff.s_clk 		:= '1';
+               vme_buff.s_dtack_oe  := '1';
+
+				when others =>		
+
+					vme_buff.s_addrDir 	:= VME2FPGA;
+					vme_buff.s_dataDir 	:= VME2FPGA;
+               vme_buff.s_buffer_eo := ADDR_BUFF;
+					vme_buff.s_clk       := '0'; 
+               vme_buff.s_dtack_oe  := '0';
+
+			end case;
+
+      return vme_buff;
+
+   end buffer_irq_function;
+
+end VME_Buffer_pack;
+   
