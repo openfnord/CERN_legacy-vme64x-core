@@ -40,29 +40,31 @@
   entity xVME64xCore_Top is
     generic(
       -- clock period (ns)
-      g_clock          : integer := c_clk_period;        -- 100 MHz
+      g_clock          : integer := c_clk_period;                 -- 100 MHz
       --WB data width:
-      g_wb_data_width  : integer := c_width;             -- must be 32 or 64
+      g_wb_data_width  : integer := c_width;                      -- must be 32 or 64
       --WB address width:
-      g_wb_addr_width  : integer := c_addr_width;        -- 64 or less
+      g_wb_addr_width  : integer := c_addr_width;                 -- 64 or less
       -- CRAM 
       g_cram_size      : integer := c_CRAM_SIZE;
       -- Board ID; each board shall have an unique ID. eg: SVEC_ID = 408.
       -- loc: 0x33, 0x37, 0x3B, 0x3F   CR space
-      g_BoardID        : integer := c_SVEC_ID;           -- 4 bytes: 0x00000198
+      g_BoardID        : integer := c_SVEC_ID;                    -- 4 bytes: 0x00000198
       -- Manufacturer ID: eg the CERN ID is 0x080030
       -- loc: 0x27, 0x2B, 0x2F   CR space
-      g_ManufacturerID : integer := c_CERN_ID;           -- 3 bytes: 0x080030
+      g_ManufacturerID : integer := c_CERN_ID;                    -- 3 bytes: 0x080030
       -- Revision ID
       -- loc: 0x43, 0x47, 0x4B, 0x4F   CR space
-      g_RevisionID     : integer := c_RevisionID;        -- 4 bytes: 0x00000001
+      g_RevisionID     : integer := c_RevisionID;                 -- 4 bytes: 0x00000001
       -- Program ID: this is the firmware ID
       -- loc: 0x7f    CR space
-      g_ProgramID      : integer := 90;                  -- 1 byte : 0x5a 
+      g_ProgramID      : integer := 90;                           -- 1 byte : 0x5a 
       -- VME base address setting 
-      g_base_addr      : base_addr  := GEOGRAPHICAL_ADDR;      -- MECHANICALLY or , legacy
+      g_base_addr      : base_addr  := GEOGRAPHICAL_ADDR;         -- MECHANICALLY or , legacy
       -- SDB address 
-      g_sdb_addr       : t_wishbone_address := c_sdb_address   -- 0x00300000
+      g_sdb_addr       : t_wishbone_address := c_sdb_address;     -- 0x00300000;
+      -- IRQ source
+      g_irq_src        : irq_src    := LEGACY                     -- LEGACY or MSI
 	 );
    port(
      clk_i            : in std_logic;              
@@ -92,7 +94,7 @@
      VME_IACKOUT_n_o  : out   std_logic;
 
      -- VME buffers
-     --VME_DTACK_OE_o   : out   std_logic;
+     VME_DTACK_OE_o   : out   std_logic;
      
      --VME_DATA_BUFF_o  : out   t_VME_BUFFER;                                          
      --VME_ADDR_BUFF_o  : out   t_VME_BUFFER;
@@ -105,9 +107,12 @@
 
      VME_RETRY_OE_o   : out   std_logic;
      
-	  -- WishBone
+	  -- WishBone Master to WB Crossbar
      master_o         : out t_wishbone_master_out;
      master_i         : in  t_wishbone_master_in;
+	  -- WishBone Slave to MSI WB Crossbar
+     slave_o         : out t_wishbone_slave_out;
+     slave_i         : in  t_wishbone_slave_in;
 
      -- IRQ Generator
      INT_ack_o        : out   std_logic;   -- when the IRQ controller acknowledges the Interrupt
@@ -143,8 +148,8 @@
   signal s_fifo                    : std_logic;
   signal s_VME_DTACK_VMEbus        : std_logic;
   signal s_VME_DTACK_IRQ           : std_logic;
-  --signal s_VME_DTACK_OE_VMEbus     : std_logic;
-  --signal s_VME_DTACK_OE_IRQ        : std_logic;
+  signal s_VME_DTACK_OE_VMEbus     : std_logic;
+  signal s_VME_DTACK_OE_IRQ        : std_logic;
   --signal s_VME_DATA_DIR_VMEbus     : std_logic;
   --signal s_VME_DATA_BUFF_VMEbus    : t_VME_BUFFER;
   --signal s_VME_DATA_DIR_IRQ        : std_logic;
@@ -176,6 +181,8 @@
   signal s_time                    : std_logic_vector(39 downto 0);
   signal s_bytes                   : std_logic_vector(12 downto 0);
   signal s_IRQ                     : std_logic;
+  signal s_IRQ_i                   : std_logic;
+
   
   -- Oversampled input signals 
   signal VME_RST_n_oversampled     : std_logic;
@@ -258,7 +265,7 @@ begin
 				
   IrqrisingEdge : RisEdgeDetection
   port map (
-              sig_i      => IRQ_i,
+              sig_i      => s_IRQ_i,
               clk_i      => clk_i,
               RisEdge_o  => s_IRQ
           );
@@ -285,23 +292,23 @@ begin
 		 VME_DS_n_i           => VME_DS_n_oversampled,
 		 VME_DS_ant_n_i       => VME_DS_n_oversampled_1,
 		 VME_DTACK_n_o        => s_VME_DTACK_VMEbus,
-		 --VME_DTACK_OE_o       => s_VME_DTACK_OE_VMEbus,
+		 VME_DTACK_OE_o       => s_VME_DTACK_OE_VMEbus,
 		 VME_BERR_o           => VME_BERR_o,
 		 VME_ADDR_i           => VME_ADDR_i,
 		 VME_ADDR_o           => VME_ADDR_o,
-       VME_BUFFER_o         => s_VME_BUFFER_VMEbus,
-       --VME_ADDR_BUFF_o      => VME_ADDR_BUFF_o
+         VME_BUFFER_o         => s_VME_BUFFER_VMEbus,
+         --VME_ADDR_BUFF_o      => VME_ADDR_BUFF_o
 		 --VME_ADDR_DIR_o       => VME_ADDR_DIR_o,
 		 --VME_ADDR_OE_N_o      => VME_ADDR_OE_N_o,
 		 VME_DATA_i           => VME_DATA_i,
 		 VME_DATA_o           => s_VME_DATA_VMEbus,
-       --VME_DATA_BUFF_o      => s_VME_DATA_BUFF_VMEbus
+         --VME_DATA_BUFF_o      => s_VME_DATA_BUFF_VMEbus
 		 --VME_DATA_DIR_o       => s_VME_DATA_DIR_VMEbus,
 		 --VME_DATA_OE_N_o      => VME_DATA_OE_N_o,
 		 VME_AM_i             => VME_AM_i,
 		 VME_IACK_n_i         => VME_IACK_n_oversampled,
 		 -- WB
-       memReq_o             => master_o.STB,
+         memReq_o             => master_o.STB,
 		 memAckWB_i           => master_i.ACK,
 		 wbData_o             => master_o.DAT,
 		 wbData_i             => master_i.DAT,
@@ -312,6 +319,10 @@ begin
 		 err_i                => master_i.ERR,
 		 rty_i                => master_i.RTY,
 	 	 stall_i              => master_i.STALL,
+         -- MSI WB slave
+       slave_o              => slave_o;
+       slave_i              => slave_i;
+       msi_irq_o            => s_msi_irq;
 		 -- CR/CSR signals
 		 CRAMaddr_o           => s_CRAMaddr,
 		 CRAMdata_o           => s_CRAMdataIn,
@@ -357,8 +368,8 @@ begin
                         s_VME_DATA_IRQ;
     VME_DTACK_n_o    <= s_VME_DTACK_VMEbus      when  VME_IACK_n_oversampled ='1' else 
                         s_VME_DTACK_IRQ;		
-    --VME_DTACK_OE_o   <= s_VME_DTACK_OE_VMEbus   when  VME_IACK_n_oversampled ='1' else 
-    --                    s_VME_DTACK_OE_IRQ;					
+    VME_DTACK_OE_o   <= s_VME_DTACK_OE_VMEbus   when  VME_IACK_n_oversampled ='1' else 
+                        s_VME_DTACK_OE_IRQ;					
     --VME_DATA_DIR_o   <= s_VME_DATA_DIR_VMEbus   when  VME_IACK_n_oversampled ='1' else 
     --                    s_VME_DATA_DIR_IRQ;					
     --VME_DATA_BUFF_o  <= s_VME_DATA_BUFF_VMEbus   when  VME_IACK_n_oversampled ='1' else 
@@ -366,13 +377,19 @@ begin
     VME_BUFFER_o     <= s_VME_BUFFER_VMEbus     when  VME_IACK_n_oversampled ='1' else 
                         s_VME_BUFFER_IRQ;
 --------------------------------------------------------------------------------
+    -- Multiplexer for src of IRQ, legacy or MSI
+
+    s_IRQ_i <=  IRQ_i   when g_irq_src = LEGACY else
+                s_msi_irq;                -- MSI 
+                
+--------------------------------------------------------------------------------
     --  Interrupter
-   Inst_VME_IRQ_Controller: VME_IRQ_Controller port map(
+    Inst_VME_IRQ_Controller: VME_IRQ_Controller port map(
          		 clk_i             => clk_i,
 	         	 reset_n_i         => s_reset_IRQ,  -- asserted when low
 		          VME_IACKIN_n_i    => VME_IACKIN_n_oversampled,
          		 VME_AS_n_i        => VME_AS_n_oversampled,
-					 VME_AS1_n_i       => VME_AS_n_i,
+                VME_AS1_n_i       => VME_AS_n_i,
 	          	 VME_DS_n_i        => VME_DS_n_oversampled,
         		    VME_LWORD_n_i     => VME_LWORD_n_i,
          		 VME_ADDR_123_i    => VME_ADDR_i(3 downto 1),
@@ -382,9 +399,10 @@ begin
 		          VME_IRQ_n_o       => s_VME_IRQ_n_o,
          		 VME_IACKOUT_n_o   => VME_IACKOUT_n_o,
          		 VME_DTACK_n_o     => s_VME_DTACK_IRQ,
+         		 VME_DTACK_OE_o    => s_VME_DTACK_OE_IRQ,
          		 VME_DATA_o        => s_VME_DATA_IRQ,
-         		 --VME_DTACK_OE_o    => s_VME_DTACK_OE_IRQ,
          		 --VME_DATA_DIR_o    => s_VME_DATA_DIR_IRQ
+                --VME_DATA_BUFF_o   => s_VME_DATA_BUFF_IRQ
                 VME_BUFFER_o      => s_VME_BUFFER_IRQ
                   	);
     

@@ -26,8 +26,6 @@ entity VME_Buffer_ctrl  is
       addr_buff_v2f_o   : out std_logic;
       addr_buff_f2v_o   : out std_logic;
 
-      dtack_oe_o        : out std_logic;
-
       latch_buff_o      : out std_logic
    );
 end entity;
@@ -85,8 +83,6 @@ begin
    with g_bus_mode   select
       latch_buff_o   <= '1'   when  LATCHED,
                         '0'   when  CLOCKED;
-   
-   dtack_oe_o <= buffer_stat_i.s_dtack_oe;
 
 --   dir_eo_buff_ctrl   :  process(clk_i, rst_i)
 --   begin

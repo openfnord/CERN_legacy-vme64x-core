@@ -99,7 +99,7 @@ entity VME_bus is
           VME_DS_n_i           : in  std_logic_vector(1 downto 0);
 			 VME_DS_ant_n_i       : in  std_logic_vector(1 downto 0);
           VME_DTACK_n_o        : out std_logic;
-          --VME_DTACK_OE_o       : out std_logic;
+          VME_DTACK_OE_o       : out std_logic;
           VME_BERR_o           : out std_logic;
           VME_ADDR_i           : in  std_logic_vector(31 downto 1);  
           VME_ADDR_o           : out std_logic_vector(31 downto 1);
@@ -128,7 +128,10 @@ entity VME_bus is
           err_i                : in  std_logic;
           rty_i                : in  std_logic;
           stall_i              : in  std_logic;
-			 
+          -- MSI WB slave
+          slave_o              : out t_wishbone_slave_out;
+          slave_i              : out t_wishbone_slave_in;
+          msi_irq_o            : out std_logic;
           --CR/CSR space signals:
           CRAMaddr_o           : out std_logic_vector(f_log2_size(g_cram_size)-1 downto 0);
           CRAMdata_o           : out std_logic_vector(7 downto 0);
@@ -173,7 +176,7 @@ architecture RTL of VME_bus is
    signal s_LWORDinput                : std_logic;                                    
 
   -- External buffer signals
-   --signal s_dtackOE                   : std_logic;
+   signal s_dtackOE                   : std_logic;
    signal s_buffer                    : t_VME_BUFFER;
    --signal s_dataBuf                   : t_VME_BUFFER;
    --signal s_dataDir 			  		    : std_logic;
@@ -270,6 +273,9 @@ architecture RTL of VME_bus is
    signal s_END_USER_CR               : std_logic_vector(23 downto 0);      
    signal s_BEG_CRAM                  : std_logic_vector(23 downto 0);
    signal s_END_CRAM                  : std_logic_vector(23 downto 0);
+
+  -- MSI IRQ
+   signal s_msi_irq                   : std_logic;
 	
   -- Error signals
    signal s_BERRcondition             : std_logic;   -- Condition for asserting BERR 
@@ -345,7 +351,7 @@ begin
    --VME_ADDR_BUFF_o  <= s_addrBuf;
    VME_BUFFER_o       <= s_buffer;
 
-   --VME_DTACK_OE_o   <= s_dtackOE;
+   VME_DTACK_OE_o   <= s_dtackOE;
 
   -- VME DTACK: 
    VME_DTACK_n_o    <= s_mainDTACK;
@@ -480,7 +486,7 @@ with s_addressingType select
 -------------------------------------MAIN FSM--------------------------------|
    s_memReq         <= s_FSM.s_memReq;
    s_decode         <= s_FSM.s_decode;
-   --s_dtackOE        <= s_FSM.s_dtackOE;
+   s_dtackOE        <= s_FSM.s_dtackOE;
    s_mainDTACK      <= s_FSM.s_mainDTACK;
    --s_dataBuf        <= s_FMS.s_dataBuf;
    --s_addrBuf        <= s_FMS.s_addrBuf;
@@ -549,7 +555,7 @@ with s_addressingType select
 
                when WAIT_FOR_DS =>         -- wait until DS /= "11"             
                   s_FSM  <=  c_FSM_default; 
-                  --s_FSM.s_dtackOE        <= '1';
+                  s_FSM.s_dtackOE        <= '1';
                   --s_FSM.s_addrDir        <= (s_is_d64) and VME_WRITE_n_i;
                   s_FSM.s_buffer         <= buffer_function(s_mainFSMstate, s_is_d64, VME_WRITE_n_i);
                   s_FSM.s_DSlatch        <= '1';
@@ -566,7 +572,7 @@ with s_addressingType select
                   -- this state is necessary indeed the VME master can assert the 
                   -- DS lines not at the same time 
                   s_FSM                  <=  c_FSM_default;                                      
-                  --s_FSM.s_dtackOE        <= '1';
+                  s_FSM.s_dtackOE        <= '1';
                   --s_FSM.s_dataDir        <= VME_WRITE_n_i;
                   --s_FSM.s_addrDir        <=  (s_is_d64) and VME_WRITE_n_i;
                   s_FSM.s_buffer         <= buffer_function(s_mainFSMstate, s_is_d64, VME_WRITE_n_i);
@@ -584,7 +590,7 @@ with s_addressingType select
                   -- this state is necessary indeed the VME master can assert the 
                   -- DS lines not at the same time 
                   s_FSM                  <=  c_FSM_default;                                      
-                  --s_FSM.s_dtackOE        <= '1';
+                  s_FSM.s_dtackOE        <= '1';
                   --s_FSM.s_dataDir        <= VME_WRITE_n_i;
                   --s_FSM.s_addrDir        <=  (s_is_d64) and VME_WRITE_n_i;
                   s_FSM.s_buffer         <= buffer_function(s_mainFSMstate, s_is_d64, VME_WRITE_n_i);
@@ -602,7 +608,7 @@ with s_addressingType select
                   -- this state is necessary indeed the VME master can assert the 
                   -- DS lines not at the same time 
                   s_FSM                  <=  c_FSM_default;                                      
-                  --s_FSM.s_dtackOE        <= '1';
+                  s_FSM.s_dtackOE        <= '1';
                   --s_FSM.s_dataDir        <= VME_WRITE_n_i;
                   --s_FSM.s_addrDir        <=  (s_is_d64) and VME_WRITE_n_i;
                   s_FSM.s_buffer         <= buffer_function(s_mainFSMstate, s_is_d64, VME_WRITE_n_i);
@@ -620,7 +626,7 @@ with s_addressingType select
                   -- this state is necessary indeed the VME master can assert the 
                   -- DS lines not at the same time 
                   s_FSM                  <=  c_FSM_default;                                      
-                  --s_FSM.s_dtackOE        <= '1';
+                  s_FSM.s_dtackOE        <= '1';
                   --s_FSM.s_dataDir        <= VME_WRITE_n_i;
                   --s_FSM.s_addrDir        <=  (s_is_d64) and VME_WRITE_n_i;
                   s_FSM.s_buffer         <= buffer_function(s_mainFSMstate, s_is_d64, VME_WRITE_n_i);
@@ -634,7 +640,7 @@ with s_addressingType select
 						
                when CHECK_TRANSFER_TYPE =>                    
                   s_FSM                  <=  c_FSM_default;
-                  --s_FSM.s_dtackOE        <= '1';
+                  s_FSM.s_dtackOE        <= '1';
 
                   --s_FSM.s_dataDir        <= VME_WRITE_n_i;
                   --s_FSM.s_addrDir        <=  (s_is_d64) and VME_WRITE_n_i;
@@ -656,7 +662,7 @@ with s_addressingType select
                   -- To request the memory CR/CSR or WB memory it is sufficient to 
                   -- generate a pulse on s_memReq signal 
                   s_FSM                   <=  c_FSM_default;
-                  --s_FSM.s_dtackOE         <= '1';
+                  s_FSM.s_dtackOE         <= '1';
                   --s_FSM.s_dataDir         <= VME_WRITE_n_i;
                   --s_FSM.s_addrDir         <=  (s_is_d64) and VME_WRITE_n_i;
                   s_FSM.s_buffer         <= buffer_function(s_mainFSMstate, s_is_d64, VME_WRITE_n_i);
@@ -678,7 +684,7 @@ with s_addressingType select
 
                when DATA_TO_BUS =>
                   s_FSM                  <=  c_FSM_default;
-                  --s_FSM.s_dtackOE        <= '1';
+                  s_FSM.s_dtackOE        <= '1';
                   --s_FSM.s_dataDir        <= VME_WRITE_n_i;
                   --s_FSM.s_addrDir        <=  (s_is_d64) and VME_WRITE_n_i;
                   s_FSM.s_buffer         <= buffer_function(s_mainFSMstate, s_is_d64, VME_WRITE_n_i);
@@ -691,7 +697,7 @@ with s_addressingType select
 
                when DTACK_LOW =>         
                   s_FSM                  <=  c_FSM_default;
-                  --s_FSM.s_dtackOE        <= '1';
+                  s_FSM.s_dtackOE        <= '1';
 						--s_FSM.s_dataDir        <= VME_WRITE_n_i;
                   --s_FSM.s_addrDir        <= (s_is_d64) and VME_WRITE_n_i;
                   s_FSM.s_buffer         <= buffer_function(s_mainFSMstate, s_is_d64, VME_WRITE_n_i);
@@ -719,7 +725,7 @@ with s_addressingType select
 
                when DECIDE_NEXT_CYCLE =>
                   s_FSM                  <=  c_FSM_default;
-                  --s_FSM.s_dtackOE        <= '1';
+                  s_FSM.s_dtackOE        <= '1';
                   --s_FSM.s_addrDir        <=  (s_is_d64) and VME_WRITE_n_i;
                   s_FSM.s_buffer         <= buffer_function(s_mainFSMstate, s_is_d64, VME_WRITE_n_i);
 
@@ -739,7 +745,7 @@ with s_addressingType select
 
                when INCREMENT_ADDR =>
                   s_FSM                  <=  c_FSM_default;
-                  --s_FSM.s_dtackOE        <= '1';
+                  s_FSM.s_dtackOE        <= '1';
                   --s_FSM.s_addrDir        <=  (s_is_d64) and VME_WRITE_n_i;
                   s_FSM.s_buffer         <= buffer_function(s_mainFSMstate, s_is_d64, VME_WRITE_n_i);
 
@@ -750,7 +756,7 @@ with s_addressingType select
 
                when SET_DATA_PHASE =>                              
                   s_FSM                  <=  c_FSM_default;
-                  --s_FSM.s_dtackOE        <= '1';
+                  s_FSM.s_dtackOE        <= '1';
                   --s_FSM.s_addrDir        <=  (s_is_d64) and VME_WRITE_n_i;
                   s_FSM.s_buffer         <= buffer_function(s_mainFSMstate, s_is_d64, VME_WRITE_n_i);
                   s_FSM.s_dataPhase      <= '1';
@@ -1180,11 +1186,13 @@ with s_addressingType select
   end process;
   s_sel <= unsigned(s_nx_sel);
   
---------------------------WB MASTER-----------------------------------|
+--------------------------WB INTERFACE-----------------------------------|
 --This component acts as WB master for single read/write PIPELINED mode.
 --The data and address lines are shifted inside this component.
+--The component acts as WB Slave for MSI interrupts 
+
   s_wbMaster_rst <= s_reset or s_mainFSMreset;
-  Inst_Wb_master: VME_Wb_master 
+  Inst_Wb: VME_Wb_Interface
                                generic map(
                                          g_wb_data_width    => g_wb_data_width,
 				                             g_wb_addr_width    => g_wb_addr_width,
@@ -1215,7 +1223,11 @@ with s_addressingType select
                                          memAckWB_i      => memAckWB_i,
                                          WbSel_o         => wbSel_o,
                                          funct_sel       => s_func_sel,
-                                         RW_o            => RW_o
+                                         RW_o            => RW_o,
+                                         -- MSI WB bus
+                                         slave_o         => slave_o,
+                                         slave_i         => slave_i,
+                                         msi_irq_o       => s_msi_irq
                                         );
 													 
 --------------------------DECODER-------------------------------------|

@@ -49,16 +49,15 @@ package xvme64x_pack is
 			s_clk          :  std_logic;
          s_buffer_eo    :  vme_buffer_eo;
          s_latch_oe     :  std_logic;
-         s_dtack_oe     :  std_logic;
 	end record;
 
    type t_FSM is
       record
          s_memReq         :  std_logic;
          s_decode         :  std_logic;
+         s_dtackOE        :  std_logic;
          s_mainDTACK      :  std_logic;
          s_buffer         :  t_VME_BUFFER;
-         --s_dtackOE        :  std_logic;
          --s_dataBuf        :  t_VME_BUFFER;
          --s_addrBuf        :  t_VME_BUFFER;
          --s_dataDir        :  std_logic;
@@ -81,12 +80,12 @@ package xvme64x_pack is
       record
 			s_IACKOUT   :  std_logic;
 			--s_DataDir   :  std_logic; 
-			--s_DTACK_OE  :  std_logic;
          s_buffer    :  t_VME_BUFFER;
 			s_DTACK     :  std_logic;
 			s_enableIRQ :  std_logic;
 			s_resetIRQ  :  std_logic;
 			s_DSlatch   :  std_logic;
+			s_DTACK_OE  :  std_logic;
 	end record;   
    
   --_______________________________________________________________________________
@@ -238,7 +237,6 @@ package xvme64x_pack is
 			s_dataDir      =>  '0',
 			s_clk          =>  '0',
          s_buffer_eo    => ADDR_BUFF,
-         s_dtack_oe     =>  '0',
          s_latch_oe     =>  '0'
 );
    -- Main Finite State machine signals default:
@@ -250,9 +248,9 @@ package xvme64x_pack is
    constant c_FSM_default : t_FSM :=(
    s_memReq         => '0',
    s_decode         => '0',
+   s_dtackOE        => '0',  
    s_mainDTACK      => '1',
    s_buffer         => c_buffer_default,
-   --s_dtackOE        => '0',  
    --s_dataDir        => '0',
    --s_dataOE         => '0',
    --s_addrDir        => '0',  -- during IACK cycle the ADDR lines are input
@@ -272,12 +270,12 @@ package xvme64x_pack is
    constant c_FSM_IRQ : t_FSM_IRQ :=(
 		s_IACKOUT   => '1',
 		--s_DataDir   => '0', 
-		--s_DTACK_OE  => '0',
       s_buffer    => c_buffer_default,
 		s_DTACK     => '1',
 		s_enableIRQ => '0',
 		s_resetIRQ  => '1',
-		s_DSlatch   => '0'
+		s_DSlatch   => '0',
+		s_DTACK_OE  => '0'
 );
 
   -- CSR address:
@@ -422,16 +420,16 @@ package xvme64x_pack is
 --                                  TWOe_END_2
                              );
 
-   type t_IRQMainFSM is (IDLE, IRQ, WAIT_AS, WAIT_DS, LATCH_DS, 
-                         CHECK, DATA_OUT, DTACK,IACKOUT1,IACKOUT2);
-
-   type t_initState is (          IDLE,            
-                                  SET_ADDR,
-                                  GET_DATA,
-                                  END_INIT
+   type t_initState is (         IDLE,            
+                                 SET_ADDR,
+                                 GET_DATA,
+                                 END_INIT
                              );
    type base_addr is   (         GEOGRAPHICAL_ADDR,
                                  MECHANICALLY
+                             );
+   type irq_src is      (        LEGACY,
+                                 MSI
                              );
 
    type t_FUNC_32b_array is array (0 to 7) of unsigned(31 downto 0);  -- ADER register array
@@ -463,10 +461,11 @@ function f_latchDS (clk_period : integer) return integer;
                         g_RevisionID     : integer := c_RevisionID;    -- 0x00000001
                         g_ProgramID      : integer := 96;              -- 0x00000060 
                         g_base_addr      : base_addr  := MECHANICALLY;
-                        g_sdb_addr       : t_wishbone_address := c_sdb_address
+                        g_sdb_addr       : t_wishbone_address := c_sdb_address;
+                        g_irq_src        : irq_src := LEGACY
                         );
                         port(
-                              -- VME signals:
+                        -- VME signals:
                         clk_i           : in    std_logic;
                         VME_AS_n_i      : in    std_logic;
                         VME_RST_n_i     : in    std_logic;
@@ -489,12 +488,15 @@ function f_latchDS (clk_period : integer) return integer;
                         VME_IACKOUT_n_o : out   std_logic;
 
                         VME_DTACK_n_o   : out   std_logic;
-                        --VME_DTACK_OE_o  : out   std_logic;
+                        VME_DTACK_OE_o  : out   std_logic;
 
                         VME_Buffer_o    : out   t_VME_BUFFER;
+
                         MASTER_O        : out   t_wishbone_master_out;
                         MASTER_I        : in    t_wishbone_master_in;
-                        
+                        SLAVE_O         : out   t_wishbone_slave_out;
+                        SLAVE_I         : in    t_wishbone_slave_in;
+
                         -- IRQ Generator
                         IRQ_i           : in    std_logic;
                         INT_ack_o       : out   std_logic;
@@ -530,6 +532,9 @@ function f_latchDS (clk_period : integer) return integer;
                         err_i                : in std_logic;
                         rty_i                : in std_logic;
                         stall_i              : in std_logic;
+                        slave_o              : out t_wishbone_slave_out;
+                        slave_i              : in  t_wishbone_slave_in;
+                        msi_irq_o            : out std_logic;
                         CRAMdata_i           : in std_logic_vector(7 downto 0);
                         CRdata_i             : in std_logic_vector(7 downto 0);
                         CSRData_i            : in std_logic_vector(7 downto 0);
@@ -551,7 +556,7 @@ function f_latchDS (clk_period : integer) return integer;
                         VME_RETRY_n_o        : out std_logic;
                         VME_RETRY_OE_o       : out std_logic;
                         VME_DTACK_n_o        : out std_logic;
-                        --VME_DTACK_OE_o       : out std_logic;
+                        VME_DTACK_OE_o       : out std_logic;
                         VME_BERR_o           : out std_logic;
                         VME_ADDR_o           : out std_logic_vector(31 downto 1);
 								VME_BUFFER_o         : out t_VME_BUFFER;
@@ -668,7 +673,8 @@ function f_latchDS (clk_period : integer) return integer;
 								g_ManufacturerID : integer := c_CERN_ID;
 				            g_RevisionID     : integer := c_RevisionID;
 				            g_ProgramID      : integer := 96;
-								g_base_addr      : base_addr:= GEOGRAPHICAL_ADDR
+								g_base_addr      : base_addr:= GEOGRAPHICAL_ADDR;
+                        g_irq_addr       : integer := LEGACY
                         );
 								
                  port(
@@ -743,7 +749,7 @@ function f_latchDS (clk_period : integer) return integer;
                      );
               end component VME_Am_Match;
 
-              component VME_Wb_master is
+              component VME_Wb_Interface is
 				  generic(
                         g_wb_data_width : integer := c_width;
 	                     g_wb_addr_width : integer := c_addr_width;
@@ -773,10 +779,13 @@ function f_latchDS (clk_period : integer) return integer;
                         WBdata_o        : out std_logic_vector(g_wb_data_width - 1 downto 0);
                         locAddr_o       : out std_logic_vector(g_wb_addr_width - 1 downto 0);
                         WbSel_o         : out std_logic_vector(f_div8(g_wb_data_width) - 1 downto 0);
-                        funct_sel       : in   std_logic_vector (7 downto 0);
-                        RW_o            : out std_logic
+                        funct_sel       : in  std_logic_vector (7 downto 0);
+                        RW_o            : out std_logic;
+                        slave_o         : out t_wishbone_slave_out;
+                        slave_i         : in  t_wishbone_slave_in;
+                        msi_irq_o       : out  std_logic
                      );
-              end component VME_Wb_master;
+              end component VME_Wb_Interface;
 
               component VME_Init is
                  port(
@@ -920,7 +929,7 @@ function f_latchDS (clk_period : integer) return integer;
                         VME_IRQ_n_o     : out std_logic_vector(6 downto 0);
                         VME_IACKOUT_n_o : out std_logic;
                         VME_DTACK_n_o   : out std_logic;
-                        --VME_DTACK_OE_o  : out std_logic;
+                        VME_DTACK_OE_o  : out std_logic;
                         VME_DATA_o      : out std_logic_vector(31 downto 0);
                         --VME_DATA_DIR_o  : out std_logic
 								VME_BUFFER_o         : out t_VME_BUFFER
