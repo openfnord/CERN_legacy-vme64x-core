@@ -422,6 +422,9 @@ package xvme64x_pack is
 --                                  TWOe_END_2
                              );
 
+   type t_IRQMainFSM is (IDLE, IRQ, WAIT_AS, WAIT_DS, LATCH_DS, 
+                         CHECK, DATA_OUT, DTACK,IACKOUT1,IACKOUT2);
+
    type t_initState is (          IDLE,            
                                   SET_ADDR,
                                   GET_DATA,

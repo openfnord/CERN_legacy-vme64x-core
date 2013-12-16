@@ -143,8 +143,8 @@ architecture Behavioral of VME_IRQ_Controller is
 --
    signal s_AS_FallingEdge          : std_logic;
 	signal s_AS_RisingEdge           : std_logic;     
-   type t_MainFSM is (IDLE, IRQ, WAIT_AS, WAIT_DS, LATCH_DS, CHECK, DATA_OUT, DTACK,IACKOUT1,IACKOUT2);
-   signal s_currs, s_nexts          : t_MainFSM;
+   --type t_IRQMainFSM is (IDLE, IRQ, WAIT_AS, WAIT_DS, LATCH_DS, CHECK, DATA_OUT, DTACK,IACKOUT1,IACKOUT2);
+   signal s_currs, s_nexts          : t_IRQMainFSM;
    signal s_ack_int                 : std_logic;
    signal s_VME_ADDR_123_latched    : std_logic_vector(2 downto 0);
    signal s_VME_DS_latched          : std_logic_vector(1 downto 0);
@@ -354,14 +354,14 @@ begin
 		    s_FSM_IRQ             <= c_FSM_IRQ;
 		    --s_FSM_IRQ.s_DataDir   <= '1';
 			 --s_FSM_IRQ.s_DTACK_OE  <= '1';
-          s_FSM_IRQ.s_buffer    <= buffer_function(s_currs, '0', '0');
+          s_FSM_IRQ.s_buffer    <= buffer_irq_function(s_currs);
 			 s_FSM_IRQ.s_resetIRQ  <= '0';
 
       when  DTACK=>	
 	     	 s_FSM_IRQ             <= c_FSM_IRQ;
 			 --s_FSM_IRQ.s_DataDir   <= '1';
 			 --s_FSM_IRQ.s_DTACK_OE  <= '1';
-          s_FSM_IRQ.s_buffer    <= buffer_function(s_currs, '0', '0');
+          s_FSM_IRQ.s_buffer    <= buffer_irq_function(s_currs);
 			 s_FSM_IRQ.s_DTACK     <= '0';
 			 		
       when others => null;
