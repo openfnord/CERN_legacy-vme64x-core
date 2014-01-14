@@ -1,0 +1,3 @@
+if it doesn't compile try:
+     - installing libc6-dev-i386
+
