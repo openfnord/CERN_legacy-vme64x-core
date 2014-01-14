@@ -130,7 +130,7 @@ entity VME_bus is
           stall_i              : in  std_logic;
           -- MSI WB slave
           slave_o              : out t_wishbone_slave_out;
-          slave_i              : out t_wishbone_slave_in;
+          slave_i              : in  t_wishbone_slave_in;
           msi_irq_o            : out std_logic;
           --CR/CSR space signals:
           CRAMaddr_o           : out std_logic_vector(f_log2_size(g_cram_size)-1 downto 0);
@@ -274,9 +274,6 @@ architecture RTL of VME_bus is
    signal s_BEG_CRAM                  : std_logic_vector(23 downto 0);
    signal s_END_CRAM                  : std_logic_vector(23 downto 0);
 
-  -- MSI IRQ
-   signal s_msi_irq                   : std_logic;
-	
   -- Error signals
    signal s_BERRcondition             : std_logic;   -- Condition for asserting BERR 
    signal s_wberr1                    : std_logic;
@@ -1225,11 +1222,12 @@ with s_addressingType select
                                          funct_sel       => s_func_sel,
                                          RW_o            => RW_o,
                                          -- MSI WB bus
-                                         slave_o         => slave_o,
-                                         slave_i         => slave_i,
-                                         msi_irq_o       => s_msi_irq
+                                         msi_reset_i    => VME_RST_n_i,
+                                         msi_slave_o     => slave_o,
+                                         msi_slave_i     => slave_i,
+                                         msi_irq_o       => msi_irq_o
                                         );
-													 
+
 --------------------------DECODER-------------------------------------|
   -- DECODER: This component check if the board is addressed; if the CR/CSR 
   -- space is addressed the Confaccess signal is asserted

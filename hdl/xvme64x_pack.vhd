@@ -91,6 +91,22 @@ package xvme64x_pack is
    
   --_______________________________________________________________________________
   -- Constants:  
+  constant c_vme_msi_sdb : t_sdb_device := (
+    abi_class     => x"0000", -- undocumented device
+    abi_ver_major => x"01",
+    abi_ver_minor => x"01",
+    wbd_endian    => c_sdb_endian_big,
+    wbd_width     => x"7", -- 8/16/32-bit port granularity
+    sdb_component => (
+    addr_first    => x"0000000000000000",
+    addr_last     => x"00000000000000ff",
+    product => (
+    vendor_id     => x"0000000000000651", -- GSI
+    device_id     => x"9326AA75",
+    version       => x"00000001",
+    date          => x"20120308",
+    name          => "IRQ_VME            ")));
+ 
    --SDB address
    constant c_sdb_address    : t_wishbone_address := x"00300000";
    --WB data width:
@@ -277,7 +293,7 @@ package xvme64x_pack is
 		s_DTACK     => '1',
 		s_enableIRQ => '0',
 		s_resetIRQ  => '1',
-		s_DSlatch   => '0',
+		s_DSlatch   => '0'
 );
 
   -- CSR address:
@@ -678,8 +694,7 @@ function f_latchDS (clk_period : integer) return integer;
 								g_ManufacturerID : integer := c_CERN_ID;
 				            g_RevisionID     : integer := c_RevisionID;
 				            g_ProgramID      : integer := 96;
-								g_base_addr      : base_addr:= GEOGRAPHICAL_ADDR;
-                        g_irq_addr       : integer := LEGACY
+								g_base_addr      : base_addr:= GEOGRAPHICAL_ADDR
                         );
 								
                  port(
@@ -786,8 +801,9 @@ function f_latchDS (clk_period : integer) return integer;
                         WbSel_o         : out std_logic_vector(f_div8(g_wb_data_width) - 1 downto 0);
                         funct_sel       : in  std_logic_vector (7 downto 0);
                         RW_o            : out std_logic;
-                        slave_o         : out t_wishbone_slave_out;
-                        slave_i         : in  t_wishbone_slave_in;
+                        msi_reset_i    : in  std_logic;
+                        msi_slave_o     : out t_wishbone_slave_out;
+                        msi_slave_i     : in  t_wishbone_slave_in;
                         msi_irq_o       : out  std_logic
                      );
               end component VME_Wb_Interface;
@@ -1047,5 +1063,6 @@ function f_log2_size (A : natural) return natural is
     end loop;
     return(4);                         -- works for up to 200 MHz
   end function f_latchDS;
-  
+    
+
 end xvme64x_pack;

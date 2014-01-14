@@ -182,7 +182,7 @@
   signal s_bytes                   : std_logic_vector(12 downto 0);
   signal s_IRQ                     : std_logic;
   signal s_IRQ_i                   : std_logic;
-
+  signal s_msi_irq                 : std_logic;
   
   -- Oversampled input signals 
   signal VME_RST_n_oversampled     : std_logic;
@@ -320,9 +320,9 @@ begin
 		 rty_i                => master_i.RTY,
 	 	 stall_i              => master_i.STALL,
          -- MSI WB slave
-       slave_o              => slave_o;
-       slave_i              => slave_i;
-       msi_irq_o            => s_msi_irq;
+       slave_o              => slave_o,
+       slave_i              => slave_i,
+       msi_irq_o            => s_msi_irq,
 		 -- CR/CSR signals
 		 CRAMaddr_o           => s_CRAMaddr,
 		 CRAMdata_o           => s_CRAMdataIn,
