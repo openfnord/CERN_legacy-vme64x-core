@@ -1,0 +1,67 @@
+#!/usr/bin/python
+# Copyright (C) 2012-2013 GSI (www.gsi.de)
+# Author: Cesar Prados <c.prados@gsi.de>
+#
+# Released according to the GNU GPL, version 2 or any later version
+
+    
+import pyvmelib
+import sys, getopt
+import os
+import struct
+
+def base_addr(slot):
+	slot_m = int(slot) 
+	slot_m = slot_m << 19
+	return hex(slot_m)
+
+def main(argv):
+
+	try:
+		opts, args = getopt.getopt(argv,"hs:o:",["help"])
+	except getopt.GetoptError:
+		print 'vme_read -s <vme slot> -o <on/off>'
+		sys.exit(2)
+
+	if (len(sys.argv) <= 1 or len(sys.argv) != 5):
+		print 'vme_read -s <vme slot> -o <on/off>'
+		sys.exit()
+
+	for opt, arg in opts:
+		if opt == '-h':
+			print 'vme_read -s <vme slot> -o <on/off>'
+			sys.exit()
+		elif opt in ("-o"):
+			operation = arg
+		elif opt in ("-s"):
+			slot = arg
+	
+	if (operation != "on" and operation != "off") :
+		print 'Please write on/off'
+		sys.exit()
+	
+	print "Setting",operation," in VME card in slot ", slot
+
+	map = pyvmelib.Mapping(am=0x2f, base_address= int(base_addr(slot),16), data_width=16, size=512*1024)
+	
+	if map.vaddr == None :
+		print "Not able to reach the card in slot",slot
+		sys.exit()
+
+	map.write(offset=0x7FF63, values=192, width=8)
+	map.write(offset=0x7FF67, values=0, width=8)
+	map.write(offset=0x7FF6B, values=0, width=8)
+	map.write(offset=0x7FF6F, values=36, width=8)
+	map.write(offset=0x7FFFB, values=16, width=8)
+
+	#IRQ
+	if operation == "on":
+		map.write(offset=0x7FF5B, values= 1,  width=8)
+	else:
+		map.write(offset=0x7FF5B, values= 0,  width=8)
+	
+
+	#map.unmap()
+
+if __name__ == "__main__":
+   main(sys.argv[1:])
