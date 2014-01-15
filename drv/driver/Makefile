@@ -20,4 +20,4 @@ clean:
 	rm -f *.mod.c
 	rm -rf L866 L865 L864 ppc
 	rm -f *.ko
-	rm Module.symvers
+	rm -f Module.symvers
