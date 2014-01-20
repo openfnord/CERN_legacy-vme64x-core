@@ -276,7 +276,7 @@ begin
               g_wb_data_width  => g_wb_data_width,
 				  g_wb_addr_width  => g_wb_addr_width, 
 				  g_cram_size      => g_cram_size,
-              g_sdb_addr       => c_sdb_address
+              g_sdb_addr       => g_sdb_addr
            )
   port map(
        clk_i                => clk_i,
