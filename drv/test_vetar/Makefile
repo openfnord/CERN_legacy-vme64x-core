@@ -28,4 +28,5 @@ vme_sw_reset: vme_sw_reset.c $(LIBVMEBUS)
 write_ctrl_window: write_ctrl_window.c $(LIBVMEBUS)
 
 clean:
-	$(RM) *.o *.a *.bak  $(SRCS:.c=)
+	$(RM) *.o *.a *.bak $(SRCS)
+

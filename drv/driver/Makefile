@@ -20,7 +20,7 @@ install:
 	
 clean:
 	rm -f *.o *.a *.so $(TESTS)
-	rm -f *.mod.c
-	rm -rf L866 L865 L864 ppc
+	rm -f *.mod.c .*.cmd
+	rm -rf L866 L865 L864 ppc .tmp_versions
 	rm -f *.ko
-	rm -f Module.symvers
+	rm -f Module.symvers modules.order

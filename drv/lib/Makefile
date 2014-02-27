@@ -18,5 +18,5 @@ lib$(DRIVER_NAME)$(EXTSO): $(OBJFILES)
 	$(CC) -shared -Wl,-export-dynamic -Wl,-soname,$(@:%.so=%.so) -o $@ $(OBJFILES)
 
 clean:
-	rm  $(OBJFILES) *.a *.so
+	rm -f $(OBJFILES) *.a *.so
 
