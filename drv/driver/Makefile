@@ -15,6 +15,9 @@ driver: modules
 
 modules:
 	$(MAKE) -C $(KERNELDIR) M=`pwd` modules
+install:
+	$(MAKE) -C $(KERNELDIR) M=`pwd` INSTALL_MOD_PATH=$(STAGING) modules_install
+	
 clean:
 	rm -f *.o *.a *.so $(TESTS)
 	rm -f *.mod.c
