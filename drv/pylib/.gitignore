@@ -1,0 +1,3 @@
+libvmebus.a
+libvmebus.so
+*.o
