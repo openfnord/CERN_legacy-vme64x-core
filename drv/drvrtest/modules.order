@@ -1,5 +1,0 @@
-kernel//root/deploy/firmware/vmebridge/drvrtest/ctr_pps_irq.ko
-kernel//root/deploy/firmware/vmebridge/drvrtest/ctr_multi_irq.ko
-kernel//root/deploy/firmware/vmebridge/drvrtest/loopirq.ko
-kernel//root/deploy/firmware/vmebridge/drvrtest/vmemon.ko
-kernel//root/deploy/firmware/vmebridge/drvrtest/test.ko
