@@ -1,50 +1,24 @@
 --___________________________________________________________________________________
 --                              VME TO WB INTERFACE
 --
---                                CERN,BE/CO-HT 
---___________________________________________________________________________________
--- File:                           VME_Wb_master.vhd
+-- File:                           VME_Wb_master_eb.vhd
 --___________________________________________________________________________________
 -- Description:
--- This component implements the WB master side in the vme64x core.
--- Work mode:
+-- This component implements the WB master side in the vme64x core and MSI WB
+-- Slave. Work mode:
 --            PIPELINED 
 --            SINGLE READ/WRITE
 --
--- The WB bus can be 64 bit wide or 32 bit wide and the data organization is BIG ENDIAN 
--- --> the most significant byte is carried in the lower position of the bus.
--- Eg:
---   _______________________________________________________________________
---  | Byte(0)| Byte(1)| Byte(2)| Byte(3)| Byte(4)| Byte(5)| Byte(6)| Byte(7)|
---  |________|________|________|________|________|________|________|________|
---   D[63:56] D[55:48] D[47:40] D[39:32] D[31:24] D[23:16] D[15:8]  D[7:0]
---
--- eg of timing diagram with synchronous WB Slave:
---             
---       Clk   _____       _____       _____       _____       _____       _____       _____
---       _____|     |_____|     |_____|     |_____|     |_____|     |_____|     |_____|     
---      cyc_o  ____________________________________________________________
---       _____|                                                            |________________
---      stb_o  ________________________________________________
---       _____|                                                |____________________________
---       __________________________________________
---      stall_i                                    |________________________________________
---      ack_i                                                   ___________
---       ______________________________________________________|           |________________       
---
--- The ack_i can be asserted with some Tclk of delay, not immediately.
--- This component implements the correct shift of the data in input/output from/to WB bus
---
+-- The WB bus is 32 bit wide and the data organization is BIG ENDIAN 
 --______________________________________________________________________________
 -- Authors:                                      
---               Pablo Alvarez Sanchez (Pablo.Alvarez.Sanchez@cern.ch)                             
---               Davide Pedretti       (Davide.Pedretti@cern.ch)  
--- Date         11/2012                                                                           
--- Version      v0.03  
+--              Cesar Prados <c.prados@gsi.de>
+-- Date         11/2013                                                                           
+-- Version      v0.02
 --______________________________________________________________________________
 --                               GNU LESSER GENERAL PUBLIC LICENSE                                
 --                              ------------------------------------    
--- Copyright (c) 2009 - 2011 CERN                           
+-- Copyright (c) 2009 - 2011 GSI
 -- This source file is free software; you can redistribute it and/or modify it 
 -- under the terms of the GNU Lesser General Public License as published by the 
 -- Free Software Foundation; either version 2.1 of the License, or (at your option) 
@@ -116,8 +90,10 @@ architecture Behavioral of VME_Wb_interface is
    signal s_select       :   std_logic_vector(8 downto 0);
    signal s_data_ctrl    :   std_logic_vector(g_wb_data_width - 1 downto 0);
    signal s_DATi_sample  :   std_logic_vector(g_wb_data_width - 1 downto 0);
+
    -- Ctrl
    signal s_error_ctrl   :   std_logic_vector(31 downto 0);
+
    -- MSI register
    signal s_msi_cyc      :   std_logic := '0';
    signal s_msi_fifo_full:   std_logic;
@@ -187,44 +163,45 @@ begin
             
             s_ack_ctrl <= '1'; 
 
-            case rel_locAddr_i(5 downto 0) is -- 24 bits access valid addres 0/8/16/24/32 ..
-               when "000000" => -- ERROR 
+            case rel_locAddr_i(5 downto 2) is -- 24 bits access valid addres 0/8/16/24/32 ..
+               when "0000" => -- ERROR 
                   s_data_ctrl <= s_error_ctrl;
-               when "001000" => -- SDWD
+               when "0010" => -- SDWD
                   s_data_ctrl <= g_sdb_addr;
-               when "010000" => -- CTRL
+               when "0100" => -- CTRL
                   s_data_ctrl(31) <= s_cyc;
                   s_data_ctrl(30 downto 0) <= (others => '0');
-               when "011000" => -- MASTER MSI STATUS
+               when "0110" => -- MASTER MSI STATUS
                   s_data_ctrl(31) <= s_msi_fifo_full;
                   s_data_ctrl(30) <= msi_int_master_o.we;
                   s_data_ctrl(29 downto 4) <= (others => '0'); 
                   s_data_ctrl(3  downto 0) <= msi_int_master_o.sel;
-               when "100000" => -- MASTER MSI ADD
+               when "1000" => -- MASTER MSI ADD
                   s_data_ctrl     <= msi_int_master_o.adr;   
-               when "101000" => -- MASTER MSI DATA
+               when "1010" => -- MASTER MSI DATA
                   s_data_ctrl     <= msi_int_master_o.dat;   
                when others =>
                   s_data_ctrl <= (others => '0');
             end case;
            
             if RW_i = '0' and memReq_i = '1' and cardSel_i = '1' then
-               case rel_locAddr_i(5 downto 0) is
-                  when "010000" =>  -- CTRL
+               case rel_locAddr_i(5 downto 2) is
+                  when "0100" =>  -- CTRL
                          if locDataInSwap_i(30) = '1' then  -- write 
                             s_cyc  <= locDataInSwap_i(31);
                          end if;
-                  when "011000" => -- MASTER MSI STATUS
+                  when "0110" => -- MASTER MSI STATUS
                         case locDataInSwap_i(1 downto 0) is
                            when "00" => null;
                            when "01" => msi_int_master_i.stall   <= '0';
                            when "10" => msi_int_master_i.ack     <= '1';
                            when "11" => msi_int_master_i.err     <= '1';
                         end case;
-                  when "101000" => -- MASTER MSI DATA
+                  when "1010" => -- MASTER MSI DATA
                      msi_int_master_i.dat <= locDataInSwap_i(31 downto 0);
+                  when "1100" => -- EMULATION OF DATA WIDTH
+                     WbSel_o <= locDataInSwap_i(3 downto 0);
                   when others =>
-
                end case;
             end if;
          end if;
@@ -236,97 +213,18 @@ begin
       end if;
 
    end if;
-
    end process;
 
--- shift data and address for WB data bus 32 bits 	
-		
-  gen32: if (g_wb_data_width = 32) generate
-
-			process(clk_i)
-         begin
-	         if rising_edge(clk_i) then
-               locAddr_o <= std_logic_vector(resize(unsigned(rel_locAddr_i) srl 2,g_wb_addr_width));
-	         end if;
-	      end process;
+   -- convert data/add widths  
+   process(clk_i)
+   begin
+      if rising_edge(clk_i) then
+         locAddr_o   <= std_logic_vector(resize(unsigned(rel_locAddr_i),g_wb_addr_width));
+         WBdata_o    <= locDataInSwap_i(g_wb_data_width-1 downto 0); 
+         locDataOut_o <= std_logic_vector(resize(unsigned(s_wbData_i), locDataOut_o'length));
+      end if;
+   end process;
 			
-			process(sel_i)
-         begin
-             if sel_i = "10000000" or  sel_i = "01000000" or sel_i = "00100000" or sel_i = "00010000" 
-			       or sel_i = "11000000" or sel_i = "00110000" or sel_i = "11110000" then
-                s_shift_dx <= '1';
-             else	 
-                s_shift_dx <= '0';
-             end if;
-         end process;	
-			
-		   process(clk_i)
-         begin
-           if rising_edge(clk_i) then
-			     case sel_i is                                          
-                 when "10000000" => WBdata_o <= std_logic_vector(resize(unsigned(locDataInSwap_i) sll 24,g_wb_data_width));
-                 when "01000000" => WBdata_o <= std_logic_vector(resize(unsigned(locDataInSwap_i) sll 16,g_wb_data_width)); 
-                 when "00100000" => WBdata_o <= std_logic_vector(resize(unsigned(locDataInSwap_i) sll 8,g_wb_data_width));
-					  when "00010000" => WBdata_o <= std_logic_vector(resize(unsigned(locDataInSwap_i),g_wb_data_width));
-                 when "00001000" => WBdata_o <= std_logic_vector(resize(unsigned(locDataInSwap_i) sll 24,g_wb_data_width));                                
-                 when "00000100" => WBdata_o <= std_logic_vector(resize(unsigned(locDataInSwap_i) sll 16,g_wb_data_width));                  
-                 when "00000010" => WBdata_o <= std_logic_vector(resize(unsigned(locDataInSwap_i) sll 8,g_wb_data_width));                  
-                 when "11000000" => WBdata_o <= std_logic_vector(resize(unsigned(locDataInSwap_i) sll 16,g_wb_data_width));
-                 when "00110000" => WBdata_o <= std_logic_vector(resize(unsigned(locDataInSwap_i),g_wb_data_width));    
-                 when "00001100" => WBdata_o <= std_logic_vector(resize(unsigned(locDataInSwap_i) sll 16,g_wb_data_width));                      
-                 when "11110000" => WBdata_o <= std_logic_vector(resize(unsigned(locDataInSwap_i),g_wb_data_width));
-                 when "00001111" => WBdata_o <= std_logic_vector(resize(unsigned(locDataInSwap_i),g_wb_data_width));   
-                 when "00000001" => WBdata_o <= std_logic_vector(resize(unsigned(locDataInSwap_i),g_wb_data_width));
-                 when "00000011" => WBdata_o <= std_logic_vector(resize(unsigned(locDataInSwap_i),g_wb_data_width));
-					  when "11111111" => WBdata_o <= std_logic_vector(resize(unsigned(locDataInSwap_i),g_wb_data_width));
-					  when others => null;
-               end case;                        
-			  
-			     if s_shift_dx = '1' then
-			        WbSel_o  <= sel_i(7 downto 4);  
-			     else
-			        WbSel_o  <= sel_i(3 downto 0);
-              end if;			  		  
-           end if;	
-         end process;
-		
-		   process (s_select,s_wbData_i)
-         begin
-           case s_select is
-               when "100000010" => locDataOut_o <= std_logic_vector(
-                    resize(unsigned(s_wbData_i(15 downto 0)) srl 8, locDataOut_o'length));
-               when "100000100" => locDataOut_o <= std_logic_vector(
-                    resize(unsigned(s_wbData_i(23 downto 0)) srl 16,locDataOut_o'length));
-               when "100001000" => locDataOut_o <= std_logic_vector(
-                    resize(unsigned(s_wbData_i(31 downto 0)) srl 24,locDataOut_o'length));
-               when "100010000" => locDataOut_o <= std_logic_vector(
-                    resize(unsigned(s_wbData_i(7 downto 0)),locDataOut_o'length));
-               when "100100000" => locDataOut_o <= std_logic_vector(
-                    resize(unsigned(s_wbData_i(15 downto 0)) srl 8,locDataOut_o'length));
-               when "101000000" => locDataOut_o <= std_logic_vector(
-                    resize(unsigned(s_wbData_i(23 downto 0)) srl 16,locDataOut_o'length));
-               when "110000000" => locDataOut_o <= std_logic_vector(
-                    resize(unsigned(s_wbData_i(31 downto 0)) srl 24,locDataOut_o'length));
-               when "100001100" => locDataOut_o <= std_logic_vector(
-                    resize(unsigned(s_wbData_i(31 downto 0)) srl 16,locDataOut_o'length));
-               when "100110000" => locDataOut_o <= std_logic_vector(
-                    resize(unsigned(s_wbData_i(15 downto 0)),locDataOut_o'length));
-               when "111000000" => locDataOut_o <= std_logic_vector(
-                    resize(unsigned(s_wbData_i(31 downto 0)) srl 16,locDataOut_o'length));
-               when "100000001" => locDataOut_o <= std_logic_vector(
-                    resize(unsigned(s_wbData_i(7 downto 0)), locDataOut_o'length));
-               when "100000011" => locDataOut_o <= std_logic_vector(
-                    resize(unsigned(s_wbData_i(15 downto 0)), locDataOut_o'length));
-               when "100001111" => locDataOut_o <= std_logic_vector(
-                    resize(unsigned(s_wbData_i(31 downto 0)), locDataOut_o'length));
-               when "111110000" => locDataOut_o <= std_logic_vector(
-                    resize(unsigned(s_wbData_i(31 downto 0)), locDataOut_o'length));
-               when others => locDataOut_o <= (others => '0');
-           end case;
-         end process;
-			
-  end generate gen32;			               
-			  
    err_o <= err_i;
    rty_o <= rty_i; 
    memAckWb_o <= memAckWB_i or s_AckWithError or rty_i or s_ack_ctrl;
