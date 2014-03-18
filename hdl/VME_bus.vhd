@@ -393,7 +393,18 @@ begin
 									    D32       when "00001",
 									    D64       when "00000",
 									    TypeError when others;
-									 
+
+--       s_typeOfDataTransfer <= D08_0     when "0101",
+--		                         D08_1     when "1001",
+--									    D08_2     when "0111",
+--									    D08_3     when "1011",
+--									    D16_01    when "0001",
+--									    D16_01    when "0001",
+--									    D16_23    when "0011",
+--									    D16_23    when "0011",
+--									    D32       when "0000",
+--									    D64       when "0000",
+	
   with s_typeOfDataTransferSelect select
        s_DataShift <= b"001000" when "01010",
 		                b"001000" when "01011",
@@ -763,8 +774,6 @@ with s_addressingType select
                when others =>
                   s_FSM              		<=  c_FSM_default;
                   s_mainFSMstate     		<= IDLE;
-
-
             end case;
          end if;
       end if;
@@ -1406,7 +1415,7 @@ with s_addressingType select
   s_initReadCounter <= unsigned(s_initReadCounter1);
   Inst_VME_Init: VME_Init port map(
                                    clk_i          => clk_i,
-                                   RSTedge_i      => s_RSTedge,
+                                   rst_n_i        => s_RSTedge,
                                    CRAddr_i       => std_logic_vector(s_CRaddr),
                                    CRdata_i       => CRdata_i,
                                    InitReadCount_o  => s_initReadCounter1,

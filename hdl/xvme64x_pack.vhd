@@ -438,8 +438,11 @@ package xvme64x_pack is
 --                                  TWOe_END_2
                              );
 
-   type t_IRQMainFSM is (IDLE, IRQ, WAIT_AS, WAIT_DS, LATCH_DS, 
+  type t_IRQMainFSM is (IDLE, IRQ, WAIT_AS, WAIT_DS, LATCH_DS, 
                          CHECK, DATA_OUT, DTACK,IACKOUT1,IACKOUT2);
+
+  type   t_MainFSM is   (IDLE, IRQ, WAIT_AS, WAIT_DS, CHECK, DATA_OUT, 
+                         DTACK, IACKOUT1, IACKOUT2);
 
    type t_initState is (         IDLE,            
                                  SET_ADDR,
@@ -813,7 +816,7 @@ function f_latchDS (clk_period : integer) return integer;
                         clk_i          : in    std_logic;
                         CRAddr_i       : in    std_logic_vector(18 downto 0);
                         CRdata_i       : in    std_logic_vector(7 downto 0);    
-                        RSTedge_i      : in    std_logic;      
+                        rst_n_i        : in    std_logic;      
                         InitReadCount_o  : out   std_logic_vector(8 downto 0);
                         InitInProgress_o : out   std_logic;
                         BEG_USR_CR_o   : out   std_logic_vector(23 downto 0);

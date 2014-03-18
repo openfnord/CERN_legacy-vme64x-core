@@ -101,11 +101,14 @@
 library IEEE;
 use IEEE.STD_LOGIC_1164.all;
 use IEEE.numeric_std.all;
-use work.vme64x_pack.all;
+use work.xvme64x_pack.all;
+use work.VME_Buffer_pack.all; 
 --===========================================================================
 -- Entity declaration
 --===========================================================================
 entity VME_IRQ_Controller is
+   generic (
+    g_retry_timeout : integer range 1024 to 16777215 := 62500);
   port (
     clk_i           : in  std_logic;
     reset_n_i       : in  std_logic;
@@ -129,7 +132,10 @@ end VME_IRQ_Controller;
 --===========================================================================
 architecture Behavioral of VME_IRQ_Controller is
 --input signals
-  signal s_INT_Req_sample       : std_logic;
+  signal int_trigger_p : std_logic;
+  signal retry_count   : unsigned(23 downto 0);
+  type   t_retry_state is (R_IDLE, R_IRQ, R_WAIT_RETRY);
+  signal retry_state : t_retry_state;
 --output signals
   signal s_buffer               : t_VME_BUFFER;
   signal s_enable               : std_logic;
@@ -139,7 +145,8 @@ architecture Behavioral of VME_IRQ_Controller is
   signal s_AS_FallingEdge       : std_logic;
   signal s_AS_RisingEdge        : std_logic;
   type   t_MainFSM is (IDLE, IRQ, WAIT_AS, WAIT_DS, CHECK, DATA_OUT, DTACK, IACKOUT1, IACKOUT2);
-  signal s_currs, s_nexts       : t_MainFSM;
+  --signal s_currs, s_nexts       : t_MainFSM;
+  signal s_currs, s_nexts       : t_IRQMainFSM;
   signal s_ack_int              : std_logic;
   signal s_VME_ADDR_123_latched : std_logic_vector(2 downto 0);
   signal s_VME_DS_latched       : std_logic_vector(1 downto 0);
@@ -165,12 +172,40 @@ begin
       FallEdge_o => s_AS_FallingEdge
       );
 
-  INT_ReqinputSample : process(clk_i)
+  p_int_retry : process(clk_i)
   begin
-    if rising_edge(clk_i) then
-      s_INT_Req_sample <= INT_Req_i;
-    end if;
-  end process;
+     if rising_edge(clk_i) then
+        if reset_n_i = '0' then
+          int_trigger_p <= '0';
+          retry_count   <= (others => '0');
+          retry_state   <= R_IDLE;
+        else
+          case retry_state is
+            when R_IDLE =>
+              if(INT_Req_i = '1') then
+                retry_state <= R_IRQ;
+              end if;
+
+            when R_IRQ =>
+              retry_count   <= (others => '0');
+              int_trigger_p <= '1';
+              retry_state   <= R_WAIT_RETRY;
+              
+            when R_WAIT_RETRY =>
+              int_trigger_p <= '0';
+
+              if(INT_Req_i = '1') then
+                retry_count <= retry_count + 1;
+                if(retry_count = g_retry_timeout) then
+                  retry_state <= R_IRQ;
+                end if;
+              else
+                retry_state <= R_IDLE;
+              end if;
+          end case;
+        end if;
+   end if;
+   end process;
 
 --Output registers:
   DTACKOutputSample : process(clk_i)
@@ -225,11 +260,11 @@ begin
     end if;
   end process;
 -- Update next state
-  process(s_currs, s_INT_Req_sample, VME_AS_n_i, VME_DS_n_i, s_ack_int, VME_IACKIN_n_i, s_AS_RisingEdge)
+  process(s_currs, int_trigger_p, VME_AS_n_i, VME_DS_n_i, s_ack_int, VME_IACKIN_n_i, s_AS_RisingEdge)
   begin
     case s_currs is
       when IDLE =>
-        if s_INT_Req_sample = '1' and VME_IACKIN_n_i = '1' then
+        if int_trigger_p = '1' and VME_IACKIN_n_i = '1' then
           s_nexts <= IRQ;
         elsif VME_IACKIN_n_i = '0' then
           s_nexts <= IACKOUT2;
@@ -306,39 +341,39 @@ begin
       when IDLE =>
 
         s_FSM_IRQ.s_IACKOUT   <= '1';
-        s_FSM_IRQ.s_DataDir   <= '0';
+        --s_FSM_IRQ.s_DataDir   <= '0';
         s_FSM_IRQ.s_DTACK     <= '1';
         s_FSM_IRQ.s_enableIRQ <= '0';
         s_FSM_IRQ.s_resetIRQ  <= '1';
         s_FSM_IRQ.s_DSlatch   <= '0';
-        s_FSM_IRQ.s_DTACK_OE  <= '0';
+        --s_FSM_IRQ.s_DTACK_OE  <= '0';
 
       when IRQ =>
         s_FSM_IRQ.s_IACKOUT   <= '1';
-        s_FSM_IRQ.s_DataDir   <= '0';
+        --s_FSM_IRQ.s_DataDir   <= '0';
         s_FSM_IRQ.s_DTACK     <= '1';
         s_FSM_IRQ.s_DSlatch   <= '0';
-        s_FSM_IRQ.s_DTACK_OE  <= '0';
+        --s_FSM_IRQ.s_DTACK_OE  <= '0';
         s_FSM_IRQ.s_enableIRQ <= '1';
         s_FSM_IRQ.s_resetIRQ  <= '0';
 
       when WAIT_AS =>
 
         s_FSM_IRQ.s_IACKOUT   <= '1';
-        s_FSM_IRQ.s_DataDir   <= '0';
+        --s_FSM_IRQ.s_DataDir   <= '0';
         s_FSM_IRQ.s_DTACK     <= '1';
         s_FSM_IRQ.s_enableIRQ <= '0';
         s_FSM_IRQ.s_DSlatch   <= '0';
-        s_FSM_IRQ.s_DTACK_OE  <= '0';
+        --s_FSM_IRQ.s_DTACK_OE  <= '0';
         s_FSM_IRQ.s_resetIRQ  <= '0';
 
       when WAIT_DS =>
         s_FSM_IRQ.s_IACKOUT   <= '1';
-        s_FSM_IRQ.s_DataDir   <= '0';
+        --s_FSM_IRQ.s_DataDir   <= '0';
         s_FSM_IRQ.s_DTACK     <= '1';
         s_FSM_IRQ.s_enableIRQ <= '0';
         s_FSM_IRQ.s_DSlatch   <= '0';
-        s_FSM_IRQ.s_DTACK_OE  <= '0';
+        --s_FSM_IRQ.s_DTACK_OE  <= '0';
         s_FSM_IRQ.s_resetIRQ  <= '0';
 
 --      when LATCH_DS =>
@@ -352,28 +387,28 @@ begin
 
       when CHECK =>
         s_FSM_IRQ.s_IACKOUT   <= '1';
-        s_FSM_IRQ.s_DataDir   <= '0';
+        --s_FSM_IRQ.s_DataDir   <= '0';
         s_FSM_IRQ.s_DTACK     <= '1';
         s_FSM_IRQ.s_enableIRQ <= '0';
         s_FSM_IRQ.s_DSlatch   <= '0';
-        s_FSM_IRQ.s_DTACK_OE  <= '0';
+        --s_FSM_IRQ.s_DTACK_OE  <= '0';
         s_FSM_IRQ.s_resetIRQ  <= '0';
 
       when IACKOUT1 =>
-        s_FSM_IRQ. s_DataDir   <= '0';
+        --s_FSM_IRQ. s_DataDir   <= '0';
         s_FSM_IRQ. s_DTACK     <= '1';
         s_FSM_IRQ. s_enableIRQ <= '0';
         s_FSM_IRQ. s_DSlatch   <= '0';
-        s_FSM_IRQ. s_DTACK_OE  <= '0';
+        --s_FSM_IRQ. s_DTACK_OE  <= '0';
         s_FSM_IRQ.s_resetIRQ   <= '0';
         s_FSM_IRQ.s_IACKOUT    <= '0';
 
       when IACKOUT2 =>
-        s_FSM_IRQ. s_DataDir   <= '0';
+        --s_FSM_IRQ. s_DataDir   <= '0';
         s_FSM_IRQ. s_DTACK     <= '1';
         s_FSM_IRQ. s_enableIRQ <= '0';
         s_FSM_IRQ. s_DSlatch   <= '0';
-        s_FSM_IRQ. s_DTACK_OE  <= '0';
+        --s_FSM_IRQ. s_DTACK_OE  <= '0';
         s_FSM_IRQ.s_resetIRQ   <= '0';
         s_FSM_IRQ.s_IACKOUT    <= '0';
 
@@ -397,7 +432,7 @@ begin
         s_FSM_IRQ.s_buffer    <= buffer_irq_function(s_currs);
         s_FSM_IRQ.s_DTACK      <= '0';
 
---      when others => null;
+       when others => null;
     end case;
   end process;
 

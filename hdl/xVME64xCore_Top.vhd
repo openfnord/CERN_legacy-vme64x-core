@@ -220,8 +220,8 @@ begin
 	begin
 		if rising_edge(clk_i) then
 			s_reg_1 <= VME_DS_n_i;
-			s_reg_2 <= s_reg_1;	
-			VME_DS_n_oversampled <= s_reg_2;	 
+			s_reg_2 <= s_reg_1;
+			VME_DS_n_oversampled <= s_reg_2;
 		end if;
   end process;
 			
@@ -263,12 +263,12 @@ begin
               clk_i => clk_i
             );			
 				
-  IrqrisingEdge : RisEdgeDetection
-  port map (
-              sig_i      => s_IRQ_i,
-              clk_i      => clk_i,
-              RisEdge_o  => s_IRQ
-          );
+--  IrqrisingEdge : RisEdgeDetection
+--  port map (
+--              sig_i      => s_IRQ_i,
+--              clk_i      => clk_i,
+--              RisEdge_o  => s_IRQ
+--          );
 				
   Inst_VME_bus: VME_bus 
   generic map(
@@ -395,7 +395,8 @@ begin
          		 VME_ADDR_123_i    => VME_ADDR_i(3 downto 1),
          		 INT_Level_i       => s_INT_Level,
          		 INT_Vector_i      => s_INT_Vector ,
-	          	 INT_Req_i         => s_IRQ,
+	          	 --INT_Req_i         => s_IRQ,
+	          	 INT_Req_i         => irq_i,
 		          VME_IRQ_n_o       => s_VME_IRQ_n_o,
          		 VME_IACKOUT_n_o   => VME_IACKOUT_n_o,
          		 VME_DTACK_n_o     => s_VME_DTACK_IRQ,
