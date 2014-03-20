@@ -81,6 +81,8 @@ end VME_Wb_interface;
 -- Architecture declaration
 --==========================================================================
 architecture Behavioral of VME_Wb_interface is
+   constant WB_WINDOW    :   std_logic_vector := "00000001";
+   constant CTRL_WINDOW  :   std_logic_vector := "00000010";
    signal s_shift_dx     :   std_logic;
    signal s_funct_sel    :   std_logic_vector (7 downto 0);
    signal s_cyc          :   std_logic;
@@ -93,10 +95,11 @@ architecture Behavioral of VME_Wb_interface is
 
    -- Ctrl
    signal s_error_ctrl   :   std_logic_vector(31 downto 0);
+   signal r_addr         :   std_logic_vector(31 downto 16);
 
    -- MSI register
-   signal s_msi_cyc      :   std_logic := '0';
-   signal s_msi_fifo_full:   std_logic;
+   signal s_msi_cyc         :   std_logic := '0';
+   signal s_msi_fifo_full   :   std_logic;
    signal s_msi_fifo_full_r :   std_logic;
 
    -- MSI IRQ FIFO
@@ -126,6 +129,13 @@ begin
    s_msi_fifo_full      <= msi_int_master_o.cyc and msi_int_master_o.stb;
    msi_irq_o            <= s_msi_fifo_full and not s_msi_fifo_full_r;
 
+   -- convert data/add widths  
+   WBdata_o    <= locDataInSwap_i(g_wb_data_width-1 downto 0); 
+   locDataOut_o <= std_logic_vector(resize(unsigned(s_wbData_i), locDataOut_o'length));
+
+   locAddr_o(r_addr'range) <= r_addr;
+   locAddr_o(r_addr'right-1 downto 0)  <= rel_locAddr_i(r_addr'right-1 downto 0);
+
    process(clk_i)
 
       begin
@@ -139,8 +149,7 @@ begin
       msi_int_master_i.ack   <= '0';
       msi_int_master_i.err   <= '0';
 
-      -- WB WINDOW
-         if s_funct_sel(0) = '1'  or (s_funct_sel(0) = '0' and s_funct_sel(1) = '0') then 
+         if s_funct_sel(0) = '1'  or (s_funct_sel(0) = '0' and s_funct_sel(1) = '0') then
             -- strobe hadler
             if reset_i = '1' or (stall_i = '0' and s_cyc = '1') then
                stb_o <= '0';
@@ -179,7 +188,10 @@ begin
                when "1000" => -- MASTER MSI ADD
                   s_data_ctrl     <= msi_int_master_o.adr;   
                when "1010" => -- MASTER MSI DATA
-                  s_data_ctrl     <= msi_int_master_o.dat;   
+                  s_data_ctrl     <= msi_int_master_o.dat;
+               when "1110" => -- WINDOW OFFSET LOW
+                  s_data_ctrl(r_addr'range)  <= r_addr;
+                  s_data_ctrl(r_addr'right-1 downto 0) <= (others => '0');
                when others =>
                   s_data_ctrl <= (others => '0');
             end case;
@@ -201,6 +213,8 @@ begin
                      msi_int_master_i.dat <= locDataInSwap_i(31 downto 0);
                   when "1100" => -- EMULATION OF DATA WIDTH
                      WbSel_o <= locDataInSwap_i(3 downto 0);
+                  when "1110" => -- WINDOW OFFSET LOW
+                      r_addr(31 downto 16) <= locDataInSwap_i(31 downto 16);
                   when others =>
                end case;
             end if;
@@ -214,17 +228,7 @@ begin
 
    end if;
    end process;
-
-   -- convert data/add widths  
-   process(clk_i)
-   begin
-      if rising_edge(clk_i) then
-         locAddr_o   <= std_logic_vector(resize(unsigned(rel_locAddr_i),g_wb_addr_width));
-         WBdata_o    <= locDataInSwap_i(g_wb_data_width-1 downto 0); 
-         locDataOut_o <= std_logic_vector(resize(unsigned(s_wbData_i), locDataOut_o'length));
-      end if;
-   end process;
-			
+		
    err_o <= err_i;
    rty_o <= rty_i; 
    memAckWb_o <= memAckWB_i or s_AckWithError or rty_i or s_ack_ctrl;
