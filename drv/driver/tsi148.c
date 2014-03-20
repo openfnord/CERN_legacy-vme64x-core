@@ -20,6 +20,8 @@
 
 #undef DEBUG_DMA
 
+#define create_proc_entry(name, mode, parent) proc_create(name, mode, parent, 0)
+
 static struct tsi148_chip *chip;
 static struct dma_pool *dma_desc_pool;
 

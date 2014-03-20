@@ -26,6 +26,24 @@
 #include "vme_dma.h"
 #include "vmebus.h"
 
+#ifndef __devinit
+#define __devinit
+#define __devinitdata
+#define __devinitcost
+#define __devexit
+#define __devexitdata
+#define __devexitconst
+#endif
+
+#ifndef __devexit_p
+#ifdef MODULE
+#define __devexit_p(x) x
+#else
+#define __devexit_p(x) NULL
+#endif
+#endif
+
+
 /*
  *  Define the number of each resources that the Tsi148 supports.
  */

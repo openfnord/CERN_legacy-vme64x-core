@@ -1188,7 +1188,9 @@ long vme_window_ioctl(struct file *file, unsigned int cmd, unsigned long arg)
  */
 static int vme_remap_pfn_range(struct vm_area_struct *vma)
 {
-
+#ifndef VM_RESERVED
+#define VM_RESERVED VM_DONTDUMP
+#endif
 	vma->vm_flags |= VM_IO | VM_RESERVED | VM_DONTCOPY | VM_DONTEXPAND;
 	vma->vm_page_prot = pgprot_noncached(vma->vm_page_prot);
 
