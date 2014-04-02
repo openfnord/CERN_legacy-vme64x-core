@@ -51,7 +51,6 @@ package VME_CR_pack is
    constant c_amcap2e : std_logic_vector(63 downto 0) :=
    --"0000000000000000000000000000000100000000000000000000000000000000"; -- for modalities TWO_edge 
    "0000000000000000000000000000000000000000000000000000000000000000";   -- disabled TWO_edge 
->>>>>>> Stashed changes
 
    constant c_xamcap0 : std_logic_vector(255 downto 0) :=
    (others => '0');   	 
