@@ -85,7 +85,8 @@ architecture Behavioral of VME_Wb_interface is
    constant CTRL_WINDOW  :   std_logic_vector := "00000010";
    signal s_shift_dx     :   std_logic;
    signal s_funct_sel    :   std_logic_vector (7 downto 0);
-   signal s_cyc          :   std_logic;
+   signal s_cyc          :   std_logic;   
+   signal s_cyc_d        :   std_logic;
    signal s_AckWithError :   std_logic;
    signal s_ack_ctrl     :   std_logic;
    signal s_wbData_i     :   std_logic_vector(63 downto 0);
@@ -113,7 +114,6 @@ begin
 
    s_select    <= cardSel_i & sel_i;
    s_wbData_i  <= std_logic_vector(resize(unsigned(s_DATi_sample),s_wbData_i'length));
-   cyc_o       <= s_cyc;
 
    MSI_IRQ_FIFO : xwb_clock_crossing port map(
       slave_clk_i    => clk_i,
@@ -142,32 +142,28 @@ begin
 
       if rising_edge(clk_i) then 
 
-      s_msi_fifo_full_r <= s_msi_fifo_full;
-      s_funct_sel <= funct_sel;
- 
-      msi_int_master_i.stall <= '1';
-      msi_int_master_i.ack   <= '0';
-      msi_int_master_i.err   <= '0';
-
-         if s_funct_sel(0) = '1'  or (s_funct_sel(0) = '0' and s_funct_sel(1) = '0') then
-            -- strobe hadler
-            if reset_i = '1' or (stall_i = '0' and s_cyc = '1') then
-               stb_o <= '0';
-            elsif memReq_i = '1' and cardSel_i = '1' and BERRcondition_i = '0' then	 
+         s_msi_fifo_full_r <= s_msi_fifo_full;
+    
+         msi_int_master_i.stall <= '1';
+         msi_int_master_i.ack   <= '0';
+         msi_int_master_i.err   <= '0';
+         
+        if funct_sel(0) = '1'  or (funct_sel(0) = '0' and funct_sel(1) = '0') then
+           
+            if (memReq_i = '1' and cardSel_i = '1' and BERRcondition_i = '0' and cyc_o = '1') then
                stb_o <= '1';
-            end if;
-            -- cycle handler
-            if reset_i = '1' or memAckWB_i = '1' then
-               s_cyc <= '0';
-            elsif memReq_i = '1' and cardSel_i = '1' and BERRcondition_i = '0' then	 
-               s_cyc <= '1';
-            end if;
+            elsif (stb_o = '1' and stall_i = '0' and cyc_o = '1') then
+               stb_o <= '0';
+             end if;
+
+            cyc_o <= s_cyc_d;
+
             -- ack and rw handler
             RW_o           <= RW_i;
             s_AckWithError <=(memReq_i and cardSel_i and BERRcondition_i); 
             s_ack_ctrl <= '0';
 
-         elsif s_funct_sel(1) = '1' and  -- CONTROL WINDOW
+         elsif funct_sel(1) = '1' and  -- CONTROL WINDOW
                (memReq_i = '1' and cardSel_i = '1' and BERRcondition_i = '0') then
             
             s_ack_ctrl <= '1'; 
@@ -178,7 +174,7 @@ begin
                when "0010" => -- SDWD
                   s_data_ctrl <= g_sdb_addr;
                when "0100" => -- CTRL
-                  s_data_ctrl(31) <= s_cyc;
+                  s_data_ctrl(31) <= s_cyc_d;
                   s_data_ctrl(30 downto 0) <= (others => '0');
                when "0110" => -- MASTER MSI STATUS
                   s_data_ctrl(31) <= s_msi_fifo_full;
@@ -200,7 +196,7 @@ begin
                case rel_locAddr_i(5 downto 2) is
                   when "0100" =>  -- CTRL
                          if locDataInSwap_i(30) = '1' then  -- write 
-                            s_cyc  <= locDataInSwap_i(31);
+                            s_cyc_d  <= locDataInSwap_i(31);
                          end if;
                   when "0110" => -- MASTER MSI STATUS
                         case locDataInSwap_i(1 downto 0) is
