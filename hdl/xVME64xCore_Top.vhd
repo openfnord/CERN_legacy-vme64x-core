@@ -180,7 +180,6 @@
   signal s_BAR                     : std_logic_vector(4 downto 0);
   signal s_time                    : std_logic_vector(39 downto 0);
   signal s_bytes                   : std_logic_vector(12 downto 0);
-  signal s_IRQ                     : std_logic;
   signal s_IRQ_i                   : std_logic;
   signal s_msi_irq                 : std_logic;
   
@@ -263,12 +262,12 @@ begin
               clk_i => clk_i
             );			
 				
-  IrqrisingEdge : RisEdgeDetection
-  port map (
-              sig_i      => s_IRQ_i,
-              clk_i      => clk_i,
-              RisEdge_o  => s_IRQ
-          );
+--  IrqrisingEdge : RisEdgeDetection
+--  port map (
+--              sig_i      => s_IRQ_i,
+--              clk_i      => clk_i,
+--              RisEdge_o  => s_IRQ
+--          );
 				
   Inst_VME_bus: VME_bus 
   generic map(
@@ -389,13 +388,14 @@ begin
 	         	 reset_n_i         => s_reset_IRQ,  -- asserted when low
 		          VME_IACKIN_n_i    => VME_IACKIN_n_oversampled,
          		 VME_AS_n_i        => VME_AS_n_oversampled,
-                VME_AS1_n_i       => VME_AS_n_i,
+                --VME_AS1_n_i       => VME_AS_n_i,
 	          	 VME_DS_n_i        => VME_DS_n_oversampled,
-        		    VME_LWORD_n_i     => VME_LWORD_n_i,
+        		    --VME_LWORD_n_i     => VME_LWORD_n_i,
          		 VME_ADDR_123_i    => VME_ADDR_i(3 downto 1),
          		 INT_Level_i       => s_INT_Level,
          		 INT_Vector_i      => s_INT_Vector ,
-	          	 INT_Req_i         => s_IRQ,
+	          	 --INT_Req_i         => s_IRQ,
+	          	 INT_Req_i         => s_IRQ_i,
 		          VME_IRQ_n_o       => s_VME_IRQ_n_o,
          		 VME_IACKOUT_n_o   => VME_IACKOUT_n_o,
          		 VME_DTACK_n_o     => s_VME_DTACK_IRQ,

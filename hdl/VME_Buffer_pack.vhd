@@ -39,7 +39,7 @@ package VME_Buffer_pack is
                               vme_write    : std_logic)
                             return t_VME_BUFFER;
 
-   function buffer_irq_function ( fsm      : t_IRQMainFSM)
+   function buffer_irq_function ( fsm      : t_irq_main_state)
                             return t_VME_BUFFER; 
                             
    type bus_mode is (  LATCHED,
@@ -196,7 +196,7 @@ package body VME_Buffer_pack is
    end buffer_function;
 
 
-   function buffer_irq_function ( fsm  : t_IRQMainFSM )
+   function buffer_irq_function ( fsm  : t_irq_main_state )
                             return t_VME_BUFFER is
 
         variable vme_buff       : t_VME_BUFFER  := c_buffer_default;
@@ -205,7 +205,7 @@ package body VME_Buffer_pack is
 
         case fsm is         
         
-           when DATA_OUT => 
+           when CHECK  => 
 
                vme_buff.s_addrDir	:= VME2FPGA;
 					vme_buff.s_dataDir 	:= FPGA2VME;
@@ -227,7 +227,7 @@ package body VME_Buffer_pack is
 					vme_buff.s_dataDir 	:= VME2FPGA;
                vme_buff.s_buffer_eo := ADDR_BUFF;
 					vme_buff.s_clk       := '0'; 
-               vme_buff.s_dtack_oe  := '0';
+               vme_buff.s_dtack_oe  := '1';
 
 			end case;
 

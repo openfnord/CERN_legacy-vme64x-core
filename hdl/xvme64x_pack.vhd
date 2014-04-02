@@ -441,6 +441,9 @@ package xvme64x_pack is
    type t_IRQMainFSM is (IDLE, IRQ, WAIT_AS, WAIT_DS, LATCH_DS, 
                          CHECK, DATA_OUT, DTACK,IACKOUT1,IACKOUT2);
 
+  type t_irq_main_state is (IDLE, IRQ, WAIT_AS, WAIT_DS, CHECK, DATA_OUT, 
+                        DTACK, IACKOUT1, IACKOUT2, SCHEDULE_IRQ);
+
    type t_initState is (         IDLE,            
                                  SET_ADDR,
                                  GET_DATA,
@@ -940,9 +943,9 @@ function f_latchDS (clk_period : integer) return integer;
                         reset_n_i       : in  std_logic;
                         VME_IACKIN_n_i  : in  std_logic;
                         VME_AS_n_i      : in  std_logic;
-								VME_AS1_n_i     : in  std_logic;
+								--VME_AS1_n_i     : in  std_logic;
                         VME_DS_n_i      : in  std_logic_vector(1 downto 0);
-                        VME_LWORD_n_i   : in  std_logic;
+                        --VME_LWORD_n_i   : in  std_logic;
                         VME_ADDR_123_i  : in  std_logic_vector(2 downto 0);
                         INT_Level_i     : in  std_logic_vector(7 downto 0);
                         INT_Vector_i    : in  std_logic_vector(7 downto 0);
