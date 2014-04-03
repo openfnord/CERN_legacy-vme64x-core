@@ -87,6 +87,7 @@ entity VME_bus is
 	);
    port(
           clk_i                : in  std_logic;	  -- 125 Mhz 
+          rst_n_i              : in  std_logic;
           reset_o              : out std_logic;   -- to the Interrupt Generator and IRQ controller
           -- VME signals                                                              
           VME_RST_n_i          : in  std_logic;
@@ -209,7 +210,7 @@ architecture RTL of VME_bus is
    signal s_DSlatched                 : std_logic_vector(1 downto 0);  -- Stores DS
    signal s_AMlatched                 : std_logic_vector(5 downto 0); --Latch on AS f. edge 
    signal s_XAM                       : unsigned(7 downto 0);  -- Stores received XAM  
-   signal s_RSTedge                   : std_logic;
+   --signal s_RSTedge                   : std_logic;
 	
   -- Type of data transfer (depending on VME_DS_n, VME_LWORD_n and VME_ADDR(1))
    signal s_typeOfDataTransfer        : t_typeOfDataTransfer;
@@ -328,7 +329,8 @@ begin
    s_is_d64 <= '1' when s_sel= "11111111" else '0'; --used to drive the VME_ADDR_DIR_o 
   ---------	
    s_RW     <= VME_WRITE_n_i; 
-   s_reset  <= not(VME_RST_n_i) or s_sw_reset; -- hw and sw reset
+   --s_reset  <= not(VME_RST_n_i) or s_sw_reset; -- hw and sw reset
+   s_reset  <= (not rst_n_i) or not(VME_RST_n_i) or s_sw_reset;  -- hw and sw reset
    reset_o  <= s_reset;   -- Asserted when high
 
   -------------------------------------------------------------------------
@@ -460,12 +462,12 @@ begin
     end if;
   end process;
 
- process(clk_i)
- begin
-     if rising_edge(clk_i) then
-         s_addrWidth <= s_addrWidth1; 
-     end if;
- end process;
+ --process(clk_i)
+ --begin
+     --if rising_edge(clk_i) then
+  s_addrWidth <= s_addrWidth1; 
+     --end if;
+ --end process;
 
 -- To implement the A32 2eVME and A32 2eSST accesses the following logic
 -- must be changed:
@@ -1406,7 +1408,8 @@ with s_addressingType select
   s_initReadCounter <= unsigned(s_initReadCounter1);
   Inst_VME_Init: VME_Init port map(
                                    clk_i          => clk_i,
-                                   RSTedge_i      => s_RSTedge,
+                                   --RSTedge_i      => s_RSTedge,
+                                   rst_n_i        => rst_n_i,
                                    CRAddr_i       => std_logic_vector(s_CRaddr),
                                    CRdata_i       => CRdata_i,
                                    InitReadCount_o  => s_initReadCounter1,
@@ -1452,12 +1455,12 @@ with s_addressingType select
              FallEdge_o => s_VMEaddrLatch
           ); 	
 
-  RSTrisingEdge : RisEdgeDetection
-  port map (
-              sig_i      => s_reset,
-              clk_i      => clk_i,
-              RisEdge_o  => s_RSTedge
-          );
+--  RSTrisingEdge : RisEdgeDetection
+--  port map (
+--              sig_i      => s_reset,
+--              clk_i      => clk_i,
+--              RisEdge_o  => s_RSTedge
+--          );
 
   ASrisingEdge : RisEdgeDetection
   port map (

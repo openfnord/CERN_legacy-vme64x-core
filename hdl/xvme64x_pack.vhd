@@ -491,6 +491,7 @@ function f_latchDS (clk_period : integer) return integer;
                         port(
                         -- VME signals:
                         clk_i           : in    std_logic;
+                        rst_n_i         : in    std_logic;
                         VME_AS_n_i      : in    std_logic;
                         VME_RST_n_i     : in    std_logic;
                         VME_WRITE_n_i   : in    std_logic;
@@ -524,7 +525,7 @@ function f_latchDS (clk_period : integer) return integer;
                         -- IRQ Generator
                         IRQ_i           : in    std_logic;
                         INT_ack_o       : out   std_logic;
-                        reset_o         : out   std_logic;
+                        --reset_o         : out   std_logic;
 
                         -- for debug:
                         debug           : out   std_logic_vector(7 downto 0)
@@ -541,6 +542,7 @@ function f_latchDS (clk_period : integer) return integer;
                         );
                  port(
                         clk_i                : in std_logic;
+                        rst_n_i              : in std_logic;
                         VME_RST_n_i          : in std_logic;
                         VME_AS_n_i           : in std_logic;
                         VME_LWORD_n_i        : in std_logic;
@@ -814,9 +816,10 @@ function f_latchDS (clk_period : integer) return integer;
               component VME_Init is
                  port(
                         clk_i          : in    std_logic;
+                        rst_n_i        : in    std_logic;      
                         CRAddr_i       : in    std_logic_vector(18 downto 0);
                         CRdata_i       : in    std_logic_vector(7 downto 0);    
-                        RSTedge_i      : in    std_logic;      
+                        --RSTedge_i      : in    std_logic;      
                         InitReadCount_o  : out   std_logic_vector(8 downto 0);
                         InitInProgress_o : out   std_logic;
                         BEG_USR_CR_o   : out   std_logic_vector(23 downto 0);

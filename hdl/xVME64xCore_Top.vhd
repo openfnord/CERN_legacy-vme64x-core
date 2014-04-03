@@ -67,9 +67,10 @@
       g_irq_src        : irq_src    := LEGACY                     -- LEGACY or MSI
 	 );
    port(
-     clk_i            : in std_logic;              
+     clk_i            : in    std_logic;              
      -- for the IRQ_Generator and relative registers 
-     reset_o          : out std_logic;   -- asserted when '1'
+     --reset_o          : out std_logic;   -- asserted when '1'
+     rst_n_i          : in    std_logic;   -- asserted when '1'
      -- VME                            
      VME_AS_n_i       : in    std_logic;
      VME_RST_n_i      : in    std_logic;  -- asserted when '0'
@@ -280,6 +281,7 @@ begin
   port map(
        clk_i                => clk_i,
 		 reset_o              => s_reset,  -- asserted when '1'
+       rst_n_i              => rst_n_i,
        -- VME 
 		 VME_RST_n_i          => VME_RST_n_oversampled,
 		 VME_AS_n_i           => VME_AS_n_oversampled,
@@ -359,7 +361,7 @@ begin
 	 VME_IRQ_o        <= s_VME_IRQ_n_o; 		-- My buffers doesn't invert the logic!!!!!
     --WE_o             <= not s_RW;   
     master_o.we      <= not s_RW;   
-    reset_o          <= s_reset;
+    --reset_o          <= s_reset;
     INT_ack_o        <= s_VME_DTACK_IRQ;
 --------------------------------------------------------------------------------	 
     --Multiplexer added on the output signal used by either VMEbus.vhd and the IRQ_controller.vhd  
