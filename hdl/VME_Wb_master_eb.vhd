@@ -85,7 +85,8 @@ architecture Behavioral of VME_Wb_interface is
    constant CTRL_WINDOW  :   std_logic_vector := "00000010";
    signal s_shift_dx     :   std_logic;
    signal s_funct_sel    :   std_logic_vector (7 downto 0);
-   signal s_cyc          :   std_logic;   
+   signal s_cyc          :   std_logic;
+   signal s_stb          :   std_logic;
    signal s_cyc_d        :   std_logic;
    signal s_AckWithError :   std_logic;
    signal s_ack_ctrl     :   std_logic;
@@ -135,6 +136,8 @@ begin
 
    locAddr_o(r_addr'range) <= r_addr;
    locAddr_o(r_addr'right-1 downto 0)  <= rel_locAddr_i(r_addr'right-1 downto 0);
+   cyc_o <= s_cyc;
+   stb_o <= s_stb;
 
    process(clk_i)
 
@@ -150,13 +153,13 @@ begin
          
         if funct_sel(0) = '1'  or (funct_sel(0) = '0' and funct_sel(1) = '0') then
            
-            if (memReq_i = '1' and cardSel_i = '1' and BERRcondition_i = '0' and cyc_o = '1') then
-               stb_o <= '1';
-            elsif (stb_o = '1' and stall_i = '0' and cyc_o = '1') then
-               stb_o <= '0';
+            if (memReq_i = '1' and cardSel_i = '1' and BERRcondition_i = '0' and s_cyc = '1') then
+               s_stb <= '1';
+            elsif (s_stb = '1' and stall_i = '0' and s_cyc = '1') then
+               s_stb <= '0';
              end if;
 
-            cyc_o <= s_cyc_d;
+            s_cyc <= s_cyc_d;
 
             -- ack and rw handler
             RW_o           <= RW_i;
