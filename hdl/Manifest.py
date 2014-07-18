@@ -14,5 +14,6 @@ files = [ "xVME64xCore_Top.vhd",
           "VME_IRQ_Controller.vhd",
           "VME_SharedComps.vhd",
           "VME_swapper.vhd",
+          "VME_Wb_slave.vhd",
           "VME_Wb_master_eb.vhd"]
 
