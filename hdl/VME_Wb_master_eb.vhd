@@ -40,7 +40,7 @@ use work.wishbone_pkg.all;
 --===========================================================================
 entity VME_Wb_Interface is
    generic(g_wb_data_width : integer := c_width;
-	        g_wb_addr_width : integer := c_addr_width;
+	         g_wb_addr_width : integer := c_addr_width;
            g_family        : string  := "Arria II VME-WB";
            g_sdb_addr : t_wishbone_address := c_sdb_address);
 

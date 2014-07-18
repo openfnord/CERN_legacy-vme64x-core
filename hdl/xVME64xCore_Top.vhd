@@ -84,11 +84,11 @@
      VME_DTACK_n_o    : out   std_logic;
      VME_RETRY_n_o    : out   std_logic;
      VME_LWORD_n_i    : in    std_logic;
-	  VME_LWORD_n_o    : out   std_logic;
+	   VME_LWORD_n_o    : out   std_logic;
      VME_ADDR_i       : in    std_logic_vector(31 downto 1);
-	  VME_ADDR_o       : out   std_logic_vector(31 downto 1);
+	   VME_ADDR_o       : out   std_logic_vector(31 downto 1);
      VME_DATA_i       : in    std_logic_vector(31 downto 0);
-	  VME_DATA_o       : out   std_logic_vector(31 downto 0);
+	   VME_DATA_o       : out   std_logic_vector(31 downto 0);
      VME_IRQ_o        : out   std_logic_vector(6 downto 0);  -- the same as []*
      VME_IACKIN_n_i   : in    std_logic;
      VME_IACK_n_i     : in    std_logic;
@@ -114,6 +114,9 @@
 	  -- WishBone Slave to MSI WB Crossbar
      slave_o         : out t_wishbone_slave_out;
      slave_i         : in  t_wishbone_slave_in;
+     -- Wishbone Slave for VME info     
+     info_slave_o     : out t_wishbone_slave_out;
+     info_slave_i     : in  t_wishbone_slave_in;
 
      -- IRQ Generator
      INT_ack_o        : out   std_logic;   -- when the IRQ controller acknowledges the Interrupt
@@ -220,8 +223,8 @@ begin
 	begin
 		if rising_edge(clk_i) then
 			s_reg_1 <= VME_DS_n_i;
-			s_reg_2 <= s_reg_1;	
-			VME_DS_n_oversampled <= s_reg_2;	 
+			s_reg_2 <= s_reg_1;
+			VME_DS_n_oversampled <= s_reg_2;
 		end if;
   end process;
 			
@@ -456,6 +459,15 @@ begin
 	          transfTime          => s_time,
 		       INT_Vector          => s_INT_Vector
 	);
+
+  vme_info  : VME_Wb_slave
+    port map(
+      clk_i       => clk_i,
+      rstn_i      => rst_n_i,
+      wb_slave_i  => info_slave_i,
+      wb_slave_o  => info_slave_o,
+      ga_i        => VME_GA_oversampled);
+
 
   end RTL;
 --===========================================================================

@@ -106,7 +106,23 @@ package xvme64x_pack is
     version       => x"00000001",
     date          => x"20120308",
     name          => "IRQ_VME            ")));
- 
+
+   constant c_vme_info_sdb : t_sdb_device := (
+    abi_class     => x"0000", -- undocumented device
+    abi_ver_major => x"01",
+    abi_ver_minor => x"01",
+    wbd_endian    => c_sdb_endian_big,
+    wbd_width     => x"4", -- 32-bit port granularity
+    sdb_component => (
+    addr_first    => x"0000000000000000",
+    addr_last     => x"000000000000ffff",
+    product => (
+    vendor_id     => x"0000000000000651", -- GSI
+    device_id     => x"22FFEE84",
+    version       => x"00000001",
+    date          => x"20140701",
+    name          => "INFO_VME           ")));
+
    --SDB address
    constant c_sdb_address    : t_wishbone_address := x"00300000";
    --WB data width:
@@ -521,6 +537,8 @@ function f_latchDS (clk_period : integer) return integer;
                         MASTER_I        : in    t_wishbone_master_in;
                         SLAVE_O         : out   t_wishbone_slave_out;
                         SLAVE_I         : in    t_wishbone_slave_in;
+                        INFO_SLAVE_O    : out   t_wishbone_slave_out;
+                        INFO_SLAVE_I    : in    t_wishbone_slave_in;
 
                         -- IRQ Generator
                         IRQ_i           : in    std_logic;
@@ -975,6 +993,15 @@ function f_latchDS (clk_period : integer) return integer;
                         dw  : out std_logic_vector(dl - 1 downto 0)
                      );
               end component VME_CRAM;
+
+              component VME_Wb_slave is
+                port(
+                  clk_i       : in std_logic;
+                  rstn_i      : in std_logic;
+                  wb_slave_i  : in  t_wishbone_slave_in;
+                  wb_slave_o  : out t_wishbone_slave_out;
+                  ga_i        : std_logic_vector(5 downto 0));
+              end component VME_Wb_slave;
 
 end xvme64x_pack;
 package body xvme64x_pack is
