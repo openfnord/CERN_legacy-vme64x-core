@@ -106,6 +106,19 @@ package xvme64x_pack is
     version       => x"00000001",
     date          => x"20120308",
     name          => "IRQ_VME            ")));
+  
+  constant c_vme_msi : t_sdb_msi := (
+    wbd_endian    => c_sdb_endian_big,
+    wbd_width     => x"7", -- 8/16/32-bit port granularity
+    sdb_component => (
+    addr_first    => x"0000000000000000",
+    addr_last     => x"000000000000ffff",
+    product => (
+    vendor_id     => x"0000000000000651", -- GSI
+    device_id     => x"9326AA75",
+    version       => x"00000001",
+    date          => x"20120308",
+    name          => "IRQ_VME            ")));
 
    constant c_vme_info_sdb : t_sdb_device := (
     abi_class     => x"0000", -- undocumented device
