@@ -185,7 +185,7 @@ begin
                   s_data_ctrl(29 downto 4) <= (others => '0'); 
                   s_data_ctrl(3  downto 0) <= msi_int_master_o.sel;
                when "1000" => -- MASTER MSI ADD
-                  s_data_ctrl     <= msi_int_master_o.adr;   
+                  s_data_ctrl     <= msi_int_master_o.adr and c_vme_msi.sdb_component.addr_last(31 downto 0);
                when "1010" => -- MASTER MSI DATA
                   s_data_ctrl     <= msi_int_master_o.dat;
                when "1110" => -- WINDOW OFFSET LOW
