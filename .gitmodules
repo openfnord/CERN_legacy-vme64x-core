@@ -1,0 +1,3 @@
+[submodule "drv"]
+	path = drv
+	url = git@github.com:GSI-CS-CO/kernel_modules.git
