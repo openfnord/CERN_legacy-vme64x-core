@@ -145,9 +145,17 @@ begin
                   end if;
                else  
                   if s_FUNC_ADER(i)(XAM_MODE) = '1' then
-                     AmMatch(i) <= s_xamcap_match(i) and s_amcap_match(i);                        				
+                     if (unsigned(XAm) = unsigned(s_FUNC_ADER(i)(9 downto 2))) then
+                        AmMatch(i) <= s_xamcap_match(i) and s_amcap_match(i);
+                     else
+                        AmMatch(i) <= '0';
+                     end if;
                   else
-                     AmMatch(i) <= s_amcap_match(i);              
+                     if unsigned(s_FUNC_ADER(i)(7 downto 2)) = unsigned(Am) then
+                        AmMatch(i) <= s_amcap_match(i);
+                     else
+                        AmMatch(i) <= '0';
+                     end if;
                   end if;
                end if;		
             end loop;

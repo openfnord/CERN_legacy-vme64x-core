@@ -185,15 +185,15 @@ package VME_CR_pack is
       --CRAM_ACCESS_WIDTH
    16#3f#  => x"84", --D32, D16, D08
       --Function data access width
-   16#40#  => x"86", -- Fun 0 accepts D64, D32, D16, D08(EO) cycles
-   16#41#  => x"86", -- Fun 1 
-   16#42#  => x"86", -- Fun 2 
-   16#43#  => x"86", -- Fun 3
+   16#40#  => x"84", -- Fun 0 accepts D64, D32, D16, D08(EO) cycles
+   16#41#  => x"84", -- Fun 1
+   16#42#  => x"ff", -- Fun 2
+   16#43#  => x"ff", -- Fun 3
 
-   16#44#  => x"86", -- Fun 4
-   16#45#  => x"86", -- Fun 5
-   16#46#  => x"86", -- Fun 6
-   16#47#  => x"86", -- Fun 7
+   16#44#  => x"ff", -- Fun 4
+   16#45#  => x"ff", -- Fun 5
+   16#46#  => x"ff", -- Fun 6
+   16#47#  => x"ff", -- Fun 7
 
 
       --Function AM code Mask
@@ -542,31 +542,31 @@ package VME_CR_pack is
    16#18A#  => x"00", -- Fun 0 
    16#18B#  => x"00", -- Fun 0 --DFS = '0'
 
-   16#18c#  => x"00", -- Fun 1 
-   16#18d#  => x"f8", -- Fun 1 
-   16#18e#  => x"00", -- Fun 1 
+   16#18c#  => x"ff", -- Fun 1 
+   16#18d#  => x"ff", -- Fun 1 
+   16#18e#  => x"fc", -- Fun 1 
    16#18f#  => x"00", -- Fun 1 --DFS = '0'
 
    16#190#  => x"00", -- Fun 2 
    16#191#  => x"00", -- Fun 2
-   16#192#  => x"f0", -- Fun 2 
+   16#192#  => x"00", -- Fun 2 
    16#193#  => x"00", -- Fun 2 --DFS = '0'
 
    16#194#  => x"00", -- Fun 3 
    16#195#  => x"00", -- Fun 3 
    16#196#  => x"00", -- Fun 3 
-   16#197#  => x"01", -- Fun 3
+   16#197#  => x"00", -- Fun 3
 
-   16#198#  => x"ff", -- Fun 4 (used for decoding FUNC3) 
+   16#198#  => x"00", -- Fun 4 (used for decoding FUNC3) 
    16#199#  => x"00", -- Fun 4 (used for decoding FUNC3)
    16#19a#  => x"00", -- Fun 4 (used for decoding FUNC3)
    16#19b#  => x"00", -- Fun 4 (used for decoding FUNC3)
 
 
-   16#19c#  => x"ff", -- Fun 5 
+   16#19c#  => x"00", -- Fun 5 
    16#19d#  => x"00", -- Fun 5 
    16#19e#  => x"00", -- Fun 5 
-   16#19f#  => x"01", -- Fun 5
+   16#19f#  => x"00", -- Fun 5
 
    16#1a0#  => x"00", -- Fun 6 
    16#1a1#  => x"00", -- Fun 6 
