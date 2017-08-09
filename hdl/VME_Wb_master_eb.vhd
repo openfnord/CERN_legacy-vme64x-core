@@ -220,7 +220,7 @@ begin
          end if;
 
       -- Shift in the error register
-      if err_i = '1' or rty_i = '1' or s_ack_ctrl = '1' then
+      if err_i = '1' or rty_i = '1' or memAckWB_i = '1' then
          s_error_ctrl <= s_error_ctrl(s_error_ctrl'length-2 downto 0) & 
                         (err_i or rty_i );
       end if;
