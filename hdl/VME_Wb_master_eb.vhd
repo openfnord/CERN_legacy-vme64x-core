@@ -108,6 +108,24 @@ architecture Behavioral of VME_Wb_interface is
    signal msi_int_master_o  : t_wishbone_master_out;
    signal msi_int_master_i  : t_wishbone_master_in;
 
+   -- State machine for direct access to TLU.
+   -- The idea is to have 4 special VME addresses that are direclty mapped 
+   -- onto the WB addresses 4 of the TLU registers (the ones that EE wants
+   -- to read as fast as possible.
+   -- Implementation is done using a state machine that switches between
+   -- normal VME-WB-bridge operation and the special register access.
+   type bridge_state_t is (state_normal, 
+                           state_ee_backdoor_idle,
+                           state_ee_backdoor_stb, 
+                           state_ee_backdoor_wait_ack,
+                           state_ee_backdoor_vme_data,
+                           state_ee_backdoor_vme_ack,
+                           state_ee_backdoor_vme_err);
+   signal s_bridge_state : bridge_state_t := state_normal;
+   signal ee_backdoor_wb_rw    : std_logic;
+   signal ee_backdoor_wb_addr  : std_logic_vector(31 downto 0);
+   signal wb_base_addr         : std_logic_vector(31 downto 0); -- configurable base addreess for WB-access
+
 --===========================================================================
 -- Architecture begin
 --===========================================================================
@@ -134,8 +152,12 @@ begin
    WBdata_o    <= locDataInSwap_i(g_wb_data_width-1 downto 0); 
    locDataOut_o <= std_logic_vector(resize(unsigned(s_wbData_i), locDataOut_o'length));
 
-   locAddr_o(r_addr'range) <= r_addr;
-   locAddr_o(r_addr'right-1 downto 0)  <= rel_locAddr_i(r_addr'right-1 downto 0);
+   locAddr_o(r_addr'range) <= r_addr  
+                    when s_bridge_state = state_normal 
+                    else ee_backdoor_wb_addr(locAddr_o'left downto r_addr'right);
+   locAddr_o(r_addr'right-1 downto 0)  <= rel_locAddr_i(r_addr'right-1 downto 0)
+                    when s_bridge_state = state_normal 
+                    else ee_backdoor_wb_addr(r_addr'right-1 downto 0);
    cyc_o <= s_cyc;
    stb_o <= s_stb;
 
@@ -153,20 +175,67 @@ begin
          
         if funct_sel(0) = '1'  or (funct_sel(0) = '0' and funct_sel(1) = '0') then
            
-            if (memReq_i = '1' and cardSel_i = '1' and BERRcondition_i = '0' and s_cyc = '1') then
-               s_stb <= '1';
-            elsif (s_stb = '1' and stall_i = '0' and s_cyc = '1') then
-               s_stb <= '0';
-             end if;
+          case s_bridge_state is -- select between normal bridge behaviour or ee-backdoor mode
+            when state_normal => 
+              if (memReq_i = '1' and cardSel_i = '1' and BERRcondition_i = '0' and s_cyc = '1') then
+                 s_stb <= '1';
+              elsif (s_stb = '1' and stall_i = '0' and s_cyc = '1') then
+                 s_stb <= '0';
+               end if;
+              s_cyc <= s_cyc_d;
+              -- ack and rw handler
+              RW_o           <= RW_i;
+              s_AckWithError <=(memReq_i and cardSel_i and BERRcondition_i); 
+              s_ack_ctrl <= '0';
 
-            s_cyc <= s_cyc_d;
+            -- handle the ee-backdoor access (make one single WB-cycle)
+            when state_ee_backdoor_idle =>
+              s_AckWithError <=(memReq_i and cardSel_i and BERRcondition_i); 
+              s_ack_ctrl <= '0';
+              if memReq_i = '1' then
+                s_bridge_state <= state_ee_backdoor_stb;
+              end if;
+				  if rel_locAddr_i(31 downto 0) = x"ffffffff" then
+				    s_bridge_state <= state_normal;
+				  end if;
+            when state_ee_backdoor_stb =>
+                ee_backdoor_wb_addr <= std_logic_vector(unsigned(rel_locAddr_i(15 downto 0)) + unsigned(wb_base_addr));
+                RW_o <= RW_i;
+                ee_backdoor_wb_rw <= RW_i;
+                WbSel_o <= "1111";
+                s_cyc <= '1';
+                s_stb <= '1';
+                if stall_i = '0' then
+                  s_bridge_state <= state_ee_backdoor_wait_ack;
+                else
+                  s_bridge_state <= state_ee_backdoor_stb;
+                end if;
+            when state_ee_backdoor_wait_ack =>
+              s_stb <= '0';
+              if memAckWB_i = '1' and ee_backdoor_wb_rw = '1' then
+                s_bridge_state <= state_ee_backdoor_vme_data;
+              elsif memAckWB_i = '1' and ee_backdoor_wb_rw = '0' then
+                s_bridge_state <= state_ee_backdoor_vme_ack;
+              elsif err_i = '1' or rty_i = '1' then
+                s_bridge_state <= state_ee_backdoor_vme_err;
+              else 
+                s_bridge_state <= state_ee_backdoor_wait_ack;
+              end if;
+            when state_ee_backdoor_vme_data => 
+              s_cyc <= '0';
+              s_bridge_state <= state_ee_backdoor_idle;
+            when state_ee_backdoor_vme_err =>
+              s_cyc <= '0';
+              s_bridge_state <= state_ee_backdoor_idle;
+            when state_ee_backdoor_vme_ack =>
+              s_cyc <= '0';
+              s_bridge_state <= state_ee_backdoor_idle;
+            when others =>
+              s_bridge_state <= state_normal;
+            -- end of ee-backdoor access  
+          end case; -- select between normal bridge behaviour or ee-backdoor mode
 
-            -- ack and rw handler
-            RW_o           <= RW_i;
-            s_AckWithError <=(memReq_i and cardSel_i and BERRcondition_i); 
-            s_ack_ctrl <= '0';
-
-         elsif funct_sel(1) = '1' and  -- CONTROL WINDOW
+        elsif funct_sel(1) = '1' and  -- CONTROL WINDOW
                (memReq_i = '1' and cardSel_i = '1' and BERRcondition_i = '0') then
             
             s_ack_ctrl <= '1'; 
@@ -197,6 +266,11 @@ begin
            
             if RW_i = '0' and memReq_i = '1' and cardSel_i = '1' then
                case rel_locAddr_i(5 downto 2) is
+                  when "0001" => -- SWITCH TO EE-BACKDOOR MODE
+                      s_bridge_state <= state_ee_backdoor_idle;
+                      wb_base_addr   <= locDataInSwap_i(31 downto 0);
+                  when "0011" => -- SWITCH TO NORMAL MODE
+                      s_bridge_state <= state_normal;
                   when "0100" =>  -- CTRL
                          if locDataInSwap_i(30) = '1' then  -- write 
                             s_cyc_d  <= locDataInSwap_i(31);
@@ -220,7 +294,7 @@ begin
          end if;
 
       -- Shift in the error register
-      if err_i = '1' or rty_i = '1' or memAckWB_i = '1' then
+      if err_i = '1' or rty_i = '1' or memAckWB_i = '1' then 
          s_error_ctrl <= s_error_ctrl(s_error_ctrl'length-2 downto 0) & 
                         (err_i or rty_i );
       end if;
