@@ -124,7 +124,8 @@ architecture Behavioral of VME_Wb_interface is
    signal s_bridge_state : bridge_state_t := state_normal;
    signal ee_backdoor_wb_rw    : std_logic;
    signal ee_backdoor_wb_addr  : std_logic_vector(31 downto 0);
-   signal wb_base_addr         : std_logic_vector(31 downto 0); -- configurable base addreess for WB-access
+   signal wb_base_addr         : std_logic_vector(31 downto 0) := x"ffffffff"; -- configurable base addreess for WB-access
+                                                                               -- 0xffffffff means "normal mode"
 
 --===========================================================================
 -- Architecture begin
@@ -243,6 +244,8 @@ begin
             case rel_locAddr_i(5 downto 2) is -- 24 bits access valid addres 0/8/16/24/32 ..
                when "0000" => -- ERROR 
                   s_data_ctrl <= s_error_ctrl;
+               when "0001" => -- READ BASE ADDR OF EE-BACKDOOR MODE
+                  s_data_ctrl <= wb_base_addr;
                when "0010" => -- SDWD
                   s_data_ctrl <= g_sdb_addr;
                when "0100" => -- CTRL
@@ -267,10 +270,12 @@ begin
             if RW_i = '0' and memReq_i = '1' and cardSel_i = '1' then
                case rel_locAddr_i(5 downto 2) is
                   when "0001" => -- SWITCH TO EE-BACKDOOR MODE
-                      s_bridge_state <= state_ee_backdoor_idle;
-                      wb_base_addr   <= locDataInSwap_i(31 downto 0);
-                  when "0011" => -- SWITCH TO NORMAL MODE
+                    wb_base_addr   <= locDataInSwap_i(31 downto 0);
+                    if locDataInSwap_i(31 downto 0) = x"ffffffff" then
                       s_bridge_state <= state_normal;
+                    else 
+                      s_bridge_state <= state_ee_backdoor_idle;
+                    end if;
                   when "0100" =>  -- CTRL
                          if locDataInSwap_i(30) = '1' then  -- write 
                             s_cyc_d  <= locDataInSwap_i(31);
