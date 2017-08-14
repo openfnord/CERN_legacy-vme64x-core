@@ -537,7 +537,7 @@ package VME_CR_pack is
       --......
 
       -- Address Decoder Mask ADEM
-   16#188#  => x"f0", -- Fun 0 
+   16#188#  => x"ff", -- Fun 0 
    16#189#  => x"00", -- Fun 0 
    16#18A#  => x"00", -- Fun 0 
    16#18B#  => x"00", -- Fun 0 --DFS = '0'
