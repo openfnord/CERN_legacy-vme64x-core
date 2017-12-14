@@ -108,12 +108,9 @@ architecture Behavioral of VME_Wb_interface is
    signal msi_int_master_o  : t_wishbone_master_out;
    signal msi_int_master_i  : t_wishbone_master_in;
 
-   -- State machine for direct access to TLU.
-   -- The idea is to have 4 special VME addresses that are direclty mapped 
-   -- onto the WB addresses 4 of the TLU registers (the ones that EE wants
-   -- to read as fast as possible.
+   -- State machine for direct VME-access to wishbone registers.
    -- Implementation is done using a state machine that switches between
-   -- normal VME-WB-bridge operation and the special register access.
+   -- normal VME-WB-bridge operation for etherbone and the direct register access.
    type bridge_state_t is (state_normal, 
                            state_ee_backdoor_idle,
                            state_ee_backdoor_stb, 
